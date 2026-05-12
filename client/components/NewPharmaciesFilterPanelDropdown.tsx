@@ -53,7 +53,7 @@ export function NewPharmaciesFilterPanelDropdown({
 
   const [mode, setMode] = useState<"months" | "range">("months");
   const [selectedMonth, setSelectedMonth] = useState<string>(() => toMonthKey(today));
-  const [compareMonth, setCompareMonth] = useState<string>("");
+  const [compareMonth, setCompareMonth] = useState<string>("__none__");
   const [fromDate, setFromDate] = useState<string>(() => toDateInputValue(today));
   const [toDate, setToDate] = useState<string>(() => toDateInputValue(today));
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -99,7 +99,7 @@ export function NewPharmaciesFilterPanelDropdown({
       const from = new Date(year, month - 1, 1);
       const to = endOfMonth(from);
 
-      if (!compareMonth) {
+      if (!compareMonth || compareMonth === "__none__") {
         if (validateDates(from, to)) {
           onFiltersChange(from, to, null, null);
         }
@@ -127,7 +127,7 @@ export function NewPharmaciesFilterPanelDropdown({
   const handleReset = () => {
     setMode("months");
     setSelectedMonth(toMonthKey(today));
-    setCompareMonth("");
+    setCompareMonth("__none__");
     setFromDate(toDateInputValue(today));
     setToDate(toDateInputValue(today));
     setValidationError(null);
@@ -186,7 +186,7 @@ export function NewPharmaciesFilterPanelDropdown({
                 <SelectValue placeholder="—" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">—</SelectItem>
+                <SelectItem value="__none__">—</SelectItem>
                 {months.map((m) => (
                   <SelectItem key={m.value} value={m.value}>
                     {m.label}
