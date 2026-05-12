@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, RefreshCw, Settings, Square, CheckSquare, ListFilter } from "lucide-react";
+import { ChevronDown, RefreshCw, Settings, Square, CheckSquare, ListFilter, Copy, Download } from "lucide-react";
 
 interface PharmacyTableProps {
   pharmacies: Pharmacy[];
@@ -62,6 +62,9 @@ interface PharmacyTableProps {
   districtFilter?: string[];
   onDistrictFilterClick?: (e: React.MouseEvent<HTMLTableCellElement>) => void;
   districtSortOrder?: 'asc' | 'desc' | null;
+  // Copy and Download actions
+  onCopyRequisites?: () => void;
+  onDownload?: () => void;
 }
 
 export function PharmacyTable({
@@ -111,6 +114,8 @@ export function PharmacyTable({
   districtFilter = [],
   onDistrictFilterClick,
   districtSortOrder = null,
+  onCopyRequisites,
+  onDownload,
 }: PharmacyTableProps) {
   const { t } = useLanguage();
 
@@ -781,6 +786,30 @@ export function PharmacyTable({
 
           {/* Right: Action buttons */}
           <div className="flex gap-2 flex-shrink-0">
+            {onCopyRequisites && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onCopyRequisites}
+                className="gap-1.5 whitespace-nowrap"
+              >
+                <Copy className="h-4 w-4" />
+                Скопировать реквизиты
+              </Button>
+            )}
+
+            {onDownload && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onDownload}
+                className="gap-1.5 whitespace-nowrap"
+              >
+                <Download className="h-4 w-4" />
+                Скачать
+              </Button>
+            )}
+
             {onRefresh && (
               <Button
                 variant="outline"

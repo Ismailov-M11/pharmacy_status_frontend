@@ -17,7 +17,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function LeadsPanel() {
     const { t } = useLanguage();
-    const { token, authLoading, user } = useAuth();
+    const { token, authLoading, user, role } = useAuth();
     const navigate = useNavigate();
 
     const [leads, setLeads] = useState<Pharmacy[]>([]);
@@ -304,6 +304,110 @@ export default function LeadsPanel() {
         }
     };
 
+    const handleCopyRequisites = () => {
+        const seen = new Set<string>();
+        const unique: Pharmacy[] = [];
+
+        for (const lead of filteredLeads) {
+            const key = lead.stir && lead.stir.trim() ? lead.stir.trim() : `__id_${lead.id}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                unique.push(lead);
+            }
+        }
+
+        if (unique.length > 200) {
+            toast.error("Нельзя копировать более 200 реквизитов. Отфильтруйте данные.");
+            return;
+        }
+
+        const text = unique.map((lead, i) => [
+            `${i + 1}) ${lead.stir || ''}`,
+            lead.juridicalName || '',
+            lead.juridicalAddress || '',
+            lead.bankName || '',
+            `${lead.bankAccount || ''}\t${lead.mfo || ''}`,
+        ].join('\n')).join('\n\n');
+
+        navigator.clipboard.writeText(text).then(() => {
+            toast.success(`Скопировано ${unique.length} реквизитов`);
+        }).catch(() => {
+            toast.error("Ошибка копирования");
+        });
+    };
+
+    const handleDownload = () => {
+        const getLastCommentLocal = (comments: any[]) => {
+            if (!comments || comments.length === 0) return null;
+            return [...comments].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+        };
+
+        const escape = (val: any) => {
+            const str = val === null || val === undefined ? '' : String(val);
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+
+        const headers = [
+            '№', 'Код', 'Название аптеки', 'Адрес', 'Ориентир',
+            'Телефон аптеки', 'Телефон Lead', 'Merchant статус', 'Telegram Bot',
+            'Обучение', 'Пакет', 'Статус', 'Lead Статус',
+            'Последний комментарий', 'Автор комментария', 'Дата комментария',
+            'Регион', 'Район', 'СТИР', 'Доп. телефон',
+            'Юридическое название', 'Юридический адрес',
+            'Название банка', 'Банковский счет', 'МФО',
+        ];
+
+        const rows = filteredLeads.map((p, i) => {
+            const lastComment = getLastCommentLocal(p.comments || []);
+            const regionName = typeof p.region === 'object' && p.region?.name
+                ? p.region.name
+                : (typeof p.region === 'string' ? p.region : '');
+            const commentDate = lastComment
+                ? new Date(lastComment.createdAt).toLocaleString('ru-RU')
+                : '';
+
+            return [
+                i + 1,
+                (p as any).marketCode || p.code,
+                p.name,
+                p.address,
+                p.landmark || '',
+                p.phone || '',
+                p.lead?.phone || '',
+                p.merchantOnline ? 'Online' : 'Offline',
+                (p.marketChats && p.marketChats.length > 0) ? 'Да' : 'Нет',
+                p.training ? 'Да' : 'Нет',
+                p.brandedPacket ? 'Да' : 'Нет',
+                p.active ? 'Активна' : 'Неактивна',
+                p.lead?.status || '',
+                lastComment?.coment || '',
+                lastComment?.creator?.phone || '',
+                commentDate,
+                regionName,
+                p.district || '',
+                p.stir || '',
+                p.additionalPhone || '',
+                p.juridicalName || '',
+                p.juridicalAddress || '',
+                p.bankName || '',
+                p.bankAccount || '',
+                p.mfo || '',
+            ].map(escape).join(',');
+        });
+
+        const csv = '﻿' + [headers.map(escape).join(','), ...rows].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `leads_${new Date().toISOString().slice(0, 10)}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
     // Filter Logic
     useEffect(() => {
         const filtered = leads.filter((p) => {
@@ -587,6 +691,8 @@ export default function LeadsPanel() {
                             setDistrictHeaderRef(e.currentTarget as HTMLElement);
                             setIsDistrictModalOpen(true);
                         }}
+                        onCopyRequisites={handleCopyRequisites}
+                        onDownload={role === 'ROLE_ADMIN' ? handleDownload : undefined}
                     />
                     {/* Pagination bottom bar */}
                     {!isLoading && filteredLeads.length > 0 && (
