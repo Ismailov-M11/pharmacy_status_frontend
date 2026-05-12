@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import * as XLSX from "xlsx";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { getLeadsList, getPharmacyList, getPharmacyStatus, Pharmacy, getUserColumnSettings, saveUserColumnSettings, ColumnSettings, updatePharmacyStatusLocal, getMarketSessionList } from "@/lib/api";
@@ -342,14 +343,6 @@ export default function LeadsPanel() {
             return [...comments].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
         };
 
-        const escape = (val: any) => {
-            const str = val === null || val === undefined ? '' : String(val);
-            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-                return `"${str.replace(/"/g, '""')}"`;
-            }
-            return str;
-        };
-
         const headers = [
             '№', 'Код', 'Название аптеки', 'Адрес', 'Ориентир',
             'Телефон аптеки', 'Телефон Lead', 'Merchant статус', 'Telegram Bot',
@@ -395,17 +388,13 @@ export default function LeadsPanel() {
                 p.bankName || '',
                 p.bankAccount || '',
                 p.mfo || '',
-            ].map(escape).join(',');
+            ];
         });
 
-        const csv = '﻿' + [headers.map(escape).join(','), ...rows].join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `leads_${new Date().toISOString().slice(0, 10)}.csv`;
-        link.click();
-        URL.revokeObjectURL(url);
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Лиды');
+        XLSX.writeFile(wb, `leads_${new Date().toISOString().slice(0, 10)}.xlsx`);
     };
 
     // Filter Logic
