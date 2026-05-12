@@ -9,9 +9,28 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { startOfMonth, endOfMonth } from "date-fns";
+import { endOfMonth } from "date-fns";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
+
+// Local-timezone-safe helpers (toISOString shifts the date in UTC+N zones)
+function toMonthKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
+}
+
+function toDateInputValue(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function parseDateInput(value: string): Date {
+  const [y, m, d] = value.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
 
 interface NewPharmaciesFilterPanelDropdownProps {
   onFiltersChange: (
@@ -30,35 +49,27 @@ export function NewPharmaciesFilterPanelDropdown({
   isLoading = false,
 }: NewPharmaciesFilterPanelDropdownProps) {
   const { t } = useLanguage();
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
+
   const [mode, setMode] = useState<"months" | "range">("months");
-  const [selectedMonth, setSelectedMonth] = useState<string>(
-    today.toISOString().slice(0, 7),
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => toMonthKey(today));
+  const [compareMonth, setCompareMonth] = useState<string>(() =>
+    toMonthKey(new Date(today.getFullYear(), today.getMonth() - 1, 1)),
   );
-  const [compareMonth, setCompareMonth] = useState<string>(
-    new Date(today.getFullYear(), today.getMonth() - 1)
-      .toISOString()
-      .slice(0, 7),
-  );
-  const [fromDate, setFromDate] = useState<string>(
-    today.toISOString().split("T")[0],
-  );
-  const [toDate, setToDate] = useState<string>(
-    today.toISOString().split("T")[0],
-  );
+  const [fromDate, setFromDate] = useState<string>(() => toDateInputValue(today));
+  const [toDate, setToDate] = useState<string>(() => toDateInputValue(today));
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const months = useMemo(() => {
     const result = [];
-    const current = new Date(today.getFullYear(), today.getMonth(), 1);
     for (let i = 0; i < 24; i++) {
-      const month = new Date(current.getFullYear(), current.getMonth() - i, 1);
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
       result.push({
-        value: month.toISOString().slice(0, 7),
+        value: toMonthKey(d),
         label: new Intl.DateTimeFormat("ru", {
           year: "numeric",
           month: "long",
-        }).format(month),
+        }).format(d),
       });
     }
     return result;
@@ -72,8 +83,9 @@ export function NewPharmaciesFilterPanelDropdown({
       return false;
     }
 
-    const diffTime = Math.abs(to.getTime() - from.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil(
+      Math.abs(to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24),
+    );
     if (diffDays > 366) {
       toast.warning(
         "⚠️ Период больше 366 дней. Показаны данные, но это может быть слишком большой диапазон.",
@@ -85,24 +97,20 @@ export function NewPharmaciesFilterPanelDropdown({
 
   const handleApply = () => {
     if (mode === "months") {
-      const [year, month] = selectedMonth.split("-");
-      const from = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const [year, month] = selectedMonth.split("-").map(Number);
+      const from = new Date(year, month - 1, 1);
       const to = endOfMonth(from);
 
-      const [compareYear, compareMonth2] = compareMonth.split("-");
-      const compareFrom = new Date(
-        parseInt(compareYear),
-        parseInt(compareMonth2) - 1,
-        1,
-      );
+      const [cYear, cMonth] = compareMonth.split("-").map(Number);
+      const compareFrom = new Date(cYear, cMonth - 1, 1);
       const compareTo = endOfMonth(compareFrom);
 
       if (validateDates(from, to) && validateDates(compareFrom, compareTo)) {
         onFiltersChange(from, to, compareFrom, compareTo);
       }
     } else {
-      const from = new Date(fromDate);
-      const to = new Date(toDate);
+      const from = parseDateInput(fromDate);
+      const to = parseDateInput(toDate);
       to.setHours(23, 59, 59, 999);
 
       if (validateDates(from, to)) {
@@ -113,14 +121,12 @@ export function NewPharmaciesFilterPanelDropdown({
 
   const handleReset = () => {
     setMode("months");
-    setSelectedMonth(today.toISOString().slice(0, 7));
+    setSelectedMonth(toMonthKey(today));
     setCompareMonth(
-      new Date(today.getFullYear(), today.getMonth() - 1)
-        .toISOString()
-        .slice(0, 7),
+      toMonthKey(new Date(today.getFullYear(), today.getMonth() - 1, 1)),
     );
-    setFromDate(today.toISOString().split("T")[0]);
-    setToDate(today.toISOString().split("T")[0]);
+    setFromDate(toDateInputValue(today));
+    setToDate(toDateInputValue(today));
     setValidationError(null);
     onReset();
   };
