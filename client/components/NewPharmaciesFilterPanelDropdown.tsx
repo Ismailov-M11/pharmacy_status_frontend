@@ -53,9 +53,7 @@ export function NewPharmaciesFilterPanelDropdown({
 
   const [mode, setMode] = useState<"months" | "range">("months");
   const [selectedMonth, setSelectedMonth] = useState<string>(() => toMonthKey(today));
-  const [compareMonth, setCompareMonth] = useState<string>(() =>
-    toMonthKey(new Date(today.getFullYear(), today.getMonth() - 1, 1)),
-  );
+  const [compareMonth, setCompareMonth] = useState<string>("");
   const [fromDate, setFromDate] = useState<string>(() => toDateInputValue(today));
   const [toDate, setToDate] = useState<string>(() => toDateInputValue(today));
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -101,6 +99,13 @@ export function NewPharmaciesFilterPanelDropdown({
       const from = new Date(year, month - 1, 1);
       const to = endOfMonth(from);
 
+      if (!compareMonth) {
+        if (validateDates(from, to)) {
+          onFiltersChange(from, to, null, null);
+        }
+        return;
+      }
+
       const [cYear, cMonth] = compareMonth.split("-").map(Number);
       const compareFrom = new Date(cYear, cMonth - 1, 1);
       const compareTo = endOfMonth(compareFrom);
@@ -122,9 +127,7 @@ export function NewPharmaciesFilterPanelDropdown({
   const handleReset = () => {
     setMode("months");
     setSelectedMonth(toMonthKey(today));
-    setCompareMonth(
-      toMonthKey(new Date(today.getFullYear(), today.getMonth() - 1, 1)),
-    );
+    setCompareMonth("");
     setFromDate(toDateInputValue(today));
     setToDate(toDateInputValue(today));
     setValidationError(null);
@@ -180,9 +183,10 @@ export function NewPharmaciesFilterPanelDropdown({
             </label>
             <Select value={compareMonth} onValueChange={setCompareMonth}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="—" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="">—</SelectItem>
                 {months.map((m) => (
                   <SelectItem key={m.value} value={m.value}>
                     {m.label}
