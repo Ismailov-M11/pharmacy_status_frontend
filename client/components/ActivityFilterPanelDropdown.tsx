@@ -9,9 +9,28 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { startOfMonth, endOfMonth } from "date-fns";
+import { endOfMonth } from "date-fns";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
+
+// Local-timezone-safe helpers
+function toMonthKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
+}
+
+function toDateInputValue(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function parseDateInput(value: string): Date {
+  const [y, m, d] = value.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
 
 interface ActivityFilterPanelDropdownProps {
   onFiltersChange: (fromDate: Date, toDate: Date) => void;
@@ -25,35 +44,24 @@ export function ActivityFilterPanelDropdown({
   isLoading = false,
 }: ActivityFilterPanelDropdownProps) {
   const { t } = useLanguage();
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
+
   const [mode, setMode] = useState<"months" | "range">("months");
-  const [selectedMonth, setSelectedMonth] = useState<string>(
-    today.toISOString().slice(0, 7),
-  );
-  const [compareMonth, setCompareMonth] = useState<string>(
-    new Date(today.getFullYear(), today.getMonth() - 1)
-      .toISOString()
-      .slice(0, 7),
-  );
-  const [fromDate, setFromDate] = useState<string>(
-    today.toISOString().split("T")[0],
-  );
-  const [toDate, setToDate] = useState<string>(
-    today.toISOString().split("T")[0],
-  );
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => toMonthKey(today));
+  const [fromDate, setFromDate] = useState<string>(() => toDateInputValue(today));
+  const [toDate, setToDate] = useState<string>(() => toDateInputValue(today));
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const months = useMemo(() => {
     const result = [];
-    const current = new Date(today.getFullYear(), today.getMonth(), 1);
     for (let i = 0; i < 24; i++) {
-      const month = new Date(current.getFullYear(), current.getMonth() - i, 1);
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
       result.push({
-        value: month.toISOString().slice(0, 7),
+        value: toMonthKey(d),
         label: new Intl.DateTimeFormat("ru", {
           year: "numeric",
           month: "long",
-        }).format(month),
+        }).format(d),
       });
     }
     return result;
@@ -67,8 +75,9 @@ export function ActivityFilterPanelDropdown({
       return false;
     }
 
-    const diffTime = Math.abs(to.getTime() - from.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil(
+      Math.abs(to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24),
+    );
     if (diffDays > 366) {
       toast.warning(
         "⚠️ Период больше 366 дней. Показаны данные, но это может быть слишком большой диапазон.",
@@ -80,16 +89,16 @@ export function ActivityFilterPanelDropdown({
 
   const handleApply = () => {
     if (mode === "months") {
-      const [year, month] = selectedMonth.split("-");
-      const from = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const [year, month] = selectedMonth.split("-").map(Number);
+      const from = new Date(year, month - 1, 1);
       const to = endOfMonth(from);
 
       if (validateDates(from, to)) {
         onFiltersChange(from, to);
       }
     } else {
-      const from = new Date(fromDate);
-      const to = new Date(toDate);
+      const from = parseDateInput(fromDate);
+      const to = parseDateInput(toDate);
       to.setHours(23, 59, 59, 999);
 
       if (validateDates(from, to)) {
@@ -100,14 +109,9 @@ export function ActivityFilterPanelDropdown({
 
   const handleReset = () => {
     setMode("months");
-    setSelectedMonth(today.toISOString().slice(0, 7));
-    setCompareMonth(
-      new Date(today.getFullYear(), today.getMonth() - 1)
-        .toISOString()
-        .slice(0, 7),
-    );
-    setFromDate(today.toISOString().split("T")[0]);
-    setToDate(today.toISOString().split("T")[0]);
+    setSelectedMonth(toMonthKey(today));
+    setFromDate(toDateInputValue(today));
+    setToDate(toDateInputValue(today));
     setValidationError(null);
     onReset();
   };
@@ -136,42 +140,22 @@ export function ActivityFilterPanelDropdown({
       </div>
 
       {mode === "months" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-2">
-              {t.currentMonth}
-            </label>
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-2">
-              {t.compareTo}
-            </label>
-            <Select value={compareMonth} onValueChange={setCompareMonth}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="mb-4">
+          <label className="text-sm font-medium text-gray-700 block mb-2">
+            {t.currentMonth}
+          </label>
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {months.map((m) => (
+                <SelectItem key={m.value} value={m.value}>
+                  {m.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
