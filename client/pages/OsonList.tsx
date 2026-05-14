@@ -117,17 +117,19 @@ function getMarkerColor(status: OsonStatus): string {
   }
 }
 
-// Displays datetime strings as-is (UTC) without browser timezone conversion.
 function formatDateTime(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   try {
-    return new Date(dateStr).toLocaleString("ru-RU", {
+    // pg returns TIMESTAMP WITHOUT TIME ZONE without 'Z'.
+    // Append 'Z' when no timezone info present so JS treats it as UTC
+    // and the browser converts to the user's local timezone correctly.
+    const normalized = /Z|[+-]\d{2}:?\d{2}$/.test(dateStr) ? dateStr : dateStr + "Z";
+    return new Date(normalized).toLocaleString("ru-RU", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-      timeZone: "UTC",
     });
   } catch {
     return "—";
