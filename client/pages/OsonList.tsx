@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -52,6 +52,8 @@ import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import {
   getOsonPharmacies,
+  getOsonStats,
+  getOsonFilterOptions,
   triggerOsonSync,
   getOsonSyncStatus,
   OsonPharmacy,
@@ -117,7 +119,7 @@ function getMarkerColor(status: OsonStatus): string {
   }
 }
 
-const DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
+const BASE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
   day: "2-digit",
   month: "2-digit",
   year: "numeric",
@@ -126,24 +128,32 @@ const DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
 };
 
 // For DB-generated timestamps (last_synced_at, created_at) stored as UTC.
-// pg returns TIMESTAMP WITHOUT TIME ZONE without 'Z', so we append it
-// to force UTC interpretation and let the browser convert to local time.
+// Always display in Asia/Tashkent timezone regardless of browser setting.
 function formatDateTime(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   try {
     const normalized = /Z|[+-]\d{2}:?\d{2}$/.test(dateStr) ? dateStr : dateStr + "Z";
-    return new Date(normalized).toLocaleString("ru-RU", DATE_FORMAT_OPTIONS);
+    return new Date(normalized).toLocaleString("ru-RU", {
+      ...BASE_FORMAT_OPTIONS,
+      timeZone: "Asia/Tashkent",
+    });
   } catch {
     return "—";
   }
 }
 
-// For OSON API timestamps (oson_synced_time) — already in local time (UTC+5).
-// Display as-is without any timezone conversion.
+// For OSON API timestamps (oson_synced_time) — stored as UTC+5 local time,
+// but pg returns them as UTC-labeled (with Z). Display raw UTC value to avoid
+// double-conversion. Treat 0001-01-01 (.NET DateTime.MinValue) as empty.
 function formatOsonDateTime(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
+  if (dateStr.startsWith("0001-01-01")) return "—";
   try {
-    return new Date(dateStr).toLocaleString("ru-RU", DATE_FORMAT_OPTIONS);
+    const normalized = /Z|[+-]\d{2}:?\d{2}$/.test(dateStr) ? dateStr : dateStr + "Z";
+    return new Date(normalized).toLocaleString("ru-RU", {
+      ...BASE_FORMAT_OPTIONS,
+      timeZone: "UTC",
+    });
   } catch {
     return "—";
   }
@@ -200,6 +210,10 @@ export default function OsonList() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
+  // Pagination
+  const [pageSize, setPageSize] = useState(100);
+  const [totalCount, setTotalCount] = useState(0);
+
   // Confirm dialog
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
@@ -225,29 +239,66 @@ export default function OsonList() {
     if (!token) return;
     setIsLoading(true);
     try {
-      const response = await getOsonPharmacies(token, {
-        status: ["all"],
-        parentRegion: filterParentRegion,
-        region: filterRegion,
-        search: searchQuery || undefined,
+      const statusFilter =
+        filterStatus.length > 0 && !filterStatus.includes("all") ? filterStatus : undefined;
+      const loadSize = activeTab === "map" ? 0 : pageSize;
+
+      const [dataRes, statsData, syncData] = await Promise.all([
+        getOsonPharmacies(token, {
+          status: statusFilter,
+          parentRegion: filterParentRegion.length > 0 ? filterParentRegion : undefined,
+          region: filterRegion.length > 0 ? filterRegion : undefined,
+          search: searchQuery || undefined,
+          page: 0,
+          size: loadSize,
+        }),
+        getOsonStats(token),
+        getOsonSyncStatus(token),
+      ]);
+
+      setPharmacies(dataRes.data);
+      setTotalCount(dataRes.total);
+      setStats(statsData);
+      setSyncStatus({
+        isSyncing: syncData.isSyncing,
+        lastSyncAt: syncData.lastSyncAt,
+        lastSyncError: syncData.lastSyncError,
+        hasToken: syncData.hasToken,
+        progress: syncData.progress || { current: 0, total: 0, percent: 0, phase: "" },
       });
-      setPharmacies(response.data);
-      setFilterOptions(response.filters);
-      setStats(response.stats);
-      setSyncStatus(response.syncStatus);
     } catch (err) {
       console.error("Failed to load OSON data:", err);
       toast.error("Не удалось загрузить данные OSON");
     } finally {
       setIsLoading(false);
     }
-  }, [token, filterParentRegion, filterRegion, searchQuery]);
+  }, [token, activeTab, filterParentRegion, filterRegion, searchQuery, filterStatus, pageSize]);
+
+  // Load filter options separately (updates when parent region changes)
+  const loadFilterOptions = useCallback(async () => {
+    if (!token) return;
+    try {
+      const opts = await getOsonFilterOptions(
+        token,
+        filterParentRegion.length === 1 ? filterParentRegion[0] : undefined
+      );
+      setFilterOptions(opts);
+    } catch {
+      // non-fatal
+    }
+  }, [token, filterParentRegion]);
 
   useEffect(() => {
     if (!authLoading && token) {
       loadData();
     }
   }, [authLoading, token, loadData]);
+
+  useEffect(() => {
+    if (!authLoading && token) {
+      loadFilterOptions();
+    }
+  }, [authLoading, token, loadFilterOptions]);
 
   // ─── Sync status polling ───────────────────────────────────────────────────────────────────
 
@@ -256,7 +307,10 @@ export default function OsonList() {
       pollingRef.current = setInterval(async () => {
         if (!token) return;
         try {
-          const status = await getOsonSyncStatus(token);
+          const [status, statsData] = await Promise.all([
+            getOsonSyncStatus(token),
+            getOsonStats(token),
+          ]);
           setSyncStatus({
             isSyncing: status.isSyncing,
             lastSyncAt: status.lastSyncAt,
@@ -264,7 +318,7 @@ export default function OsonList() {
             hasToken: status.hasToken,
             progress: status.progress || { current: 0, total: 0, percent: 0, phase: "" },
           });
-          setStats(status.stats);
+          setStats(statsData);
           if (status.progress) setSyncProgress(status.progress);
 
           if (!status.isSyncing) {
@@ -353,25 +407,8 @@ export default function OsonList() {
     toast.success("Файл успешно скачан");
   };
 
-  // ─── Frontend Stats & Filtering ───────────────────────────────────────────────────────
-
-  const displayedStats = useMemo(() => {
-    return pharmacies.reduce(
-      (acc, p) => {
-        acc.total++;
-        if (p.oson_status === "connected") acc.connected++;
-        else if (p.oson_status === "not_connected") acc.not_connected++;
-        else if (p.oson_status === "deleted") acc.deleted++;
-        return acc;
-      },
-      { total: 0, connected: 0, not_connected: 0, deleted: 0, lastSyncedAt: stats.lastSyncedAt }
-    );
-  }, [pharmacies, stats.lastSyncedAt]);
-
-  const filteredPharmacies = useMemo(() => {
-    if (filterStatus.length === 0 || filterStatus.includes("all")) return pharmacies;
-    return pharmacies.filter(p => filterStatus.includes(p.oson_status));
-  }, [pharmacies, filterStatus]);
+  // Status filter is now applied on the backend; pharmacies array already reflects it.
+  const filteredPharmacies = pharmacies;
 
   // ─── Map markers ───────────────────────────────────────────────────────────────────
 
@@ -528,10 +565,10 @@ export default function OsonList() {
           {(isSyncing || syncStatus.isSyncing) && <SyncProgressBar progress={syncProgress} />}
 
           <div className="flex gap-2 flex-wrap">
-            <StatsCard label="Всего" value={displayedStats.total} color="gray" onClick={() => toggleStatusFilter("all")} active={isStatusActive("all")} />
-            <StatsCard label="Подключён" value={displayedStats.connected} color="green" onClick={() => toggleStatusFilter("connected")} active={isStatusActive("connected")} />
-            <StatsCard label="Не подключён" value={displayedStats.not_connected} color="amber" onClick={() => toggleStatusFilter("not_connected")} active={isStatusActive("not_connected")} />
-            <StatsCard label="Удалён" value={displayedStats.deleted} color="red" onClick={() => toggleStatusFilter("deleted")} active={isStatusActive("deleted")} />
+            <StatsCard label="Всего" value={stats.total} color="gray" onClick={() => toggleStatusFilter("all")} active={isStatusActive("all")} />
+            <StatsCard label="Подключён" value={stats.connected} color="green" onClick={() => toggleStatusFilter("connected")} active={isStatusActive("connected")} />
+            <StatsCard label="Не подключён" value={stats.not_connected} color="amber" onClick={() => toggleStatusFilter("not_connected")} active={isStatusActive("not_connected")} />
+            <StatsCard label="Удалён" value={stats.deleted} color="red" onClick={() => toggleStatusFilter("deleted")} active={isStatusActive("deleted")} />
           </div>
 
           {activeTab === "list" && (
@@ -569,7 +606,14 @@ export default function OsonList() {
 
         <div className="flex-1 overflow-hidden relative">
           {activeTab === "list" ? (
-            <ListTab pharmacies={filteredPharmacies} isLoading={isLoading} language={language} />
+            <ListTab
+              pharmacies={filteredPharmacies}
+              isLoading={isLoading}
+              language={language}
+              pageSize={pageSize}
+              onPageSizeChange={setPageSize}
+              totalCount={totalCount}
+            />
           ) : (
             <MapTab
               containerRef={containerRef}
@@ -583,9 +627,9 @@ export default function OsonList() {
               filterOptions={filterOptions}
               onFilterParentRegion={(v) => { setFilterParentRegion(v); setFilterRegion([]); }}
               onFilterRegion={(v) => setFilterRegion(v)}
-              onFilterStatus={(v) => setFilterStatus(v)}
+              onFilterStatus={(v) => toggleStatusFilter(v)}
               onSearch={(v) => setSearchQuery(v)}
-              stats={displayedStats}
+              stats={stats}
             />
           )}
         </div>
@@ -671,12 +715,18 @@ function SyncProgressBar({ progress }: { progress: OsonProgress }) {
 
 // ─── List Tab ────────────────────────────────────────────────────────────────────────────────
 
-function ListTab({ pharmacies, isLoading, language }: { pharmacies: OsonPharmacy[]; isLoading: boolean; language: string; }) {
+function ListTab({ pharmacies, isLoading, language, pageSize, onPageSizeChange, totalCount }: {
+  pharmacies: OsonPharmacy[];
+  isLoading: boolean;
+  language: string;
+  pageSize: number;
+  onPageSizeChange: (size: number) => void;
+  totalCount: number;
+}) {
   const [selectedPharmacy, setSelectedPharmacy] = useState<OsonPharmacy | null>(null);
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(100);
 
-  useEffect(() => { setPage(0); }, [pharmacies, pageSize]);
+  useEffect(() => { setPage(0); }, [pharmacies]);
 
   const totalPages = Math.max(1, Math.ceil(pharmacies.length / pageSize));
   const pagedPharmacies = pharmacies.slice(page * pageSize, (page + 1) * pageSize);
@@ -780,14 +830,17 @@ function ListTab({ pharmacies, isLoading, language }: { pharmacies: OsonPharmacy
 
       <div className="shrink-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-2 text-xs text-gray-400 flex flex-wrap justify-between items-center gap-2 w-full shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.05)]">
         <div className="flex items-center gap-3">
-          <span>Показано {page * pageSize + 1}–{Math.min((page + 1) * pageSize, pharmacies.length)} из {pharmacies.length.toLocaleString()} аптек</span>
+          <span>
+            Загружено {pharmacies.length.toLocaleString()} из {totalCount.toLocaleString()} аптек
+            {totalPages > 1 && ` · стр. ${page * pageSize + 1}–${Math.min((page + 1) * pageSize, pharmacies.length)}`}
+          </span>
           <span className="text-gray-200 dark:text-gray-600">|</span>
           <div className="flex items-center gap-1.5">
             <span>Строк:</span>
             <input
               type="number" min={1} defaultValue={pageSize} key={pageSize}
-              onBlur={e => { const val = Math.max(1, parseInt(e.target.value) || 1); setPageSize(val); }}
-              onKeyDown={e => { if (e.key === "Enter") { const val = Math.max(1, parseInt((e.target as HTMLInputElement).value) || 1); setPageSize(val); (e.target as HTMLInputElement).blur(); } }}
+              onBlur={e => { const val = Math.max(1, parseInt(e.target.value) || 1); onPageSizeChange(val); }}
+              onKeyDown={e => { if (e.key === "Enter") { const val = Math.max(1, parseInt((e.target as HTMLInputElement).value) || 1); onPageSizeChange(val); (e.target as HTMLInputElement).blur(); } }}
               className="border border-gray-200 dark:border-gray-600 rounded px-1.5 py-0.5 w-16 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-purple-500 text-xs"
             />
           </div>

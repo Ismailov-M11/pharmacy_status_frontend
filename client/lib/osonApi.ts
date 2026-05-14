@@ -61,9 +61,8 @@ export interface OsonFilterOptions {
 export interface OsonDataResponse {
   data: OsonPharmacy[];
   total: number;
-  filters: OsonFilterOptions;
-  stats: OsonStats;
-  syncStatus: OsonSyncStatus;
+  page: number;
+  size: number;
 }
 
 export interface OsonFilters {
@@ -71,6 +70,8 @@ export interface OsonFilters {
   parentRegion?: string[] | string;
   region?: string[] | string;
   search?: string;
+  page?: number;
+  size?: number;
 }
 
 // ─── Backend Base URL ────────────────────────────────────────────────────────────
@@ -90,15 +91,20 @@ const BACKEND_URL = getBackendRoot();
 // ─── API Functions ───────────────────────────────────────────────────────────────
 
 /**
- * Get all OSON pharmacies with optional filters
+ * Get OSON pharmacies with optional filters and pagination.
+ * Pass size=0 to load all records (e.g. for map view).
  */
 export async function getOsonPharmacies(
   token: string,
   filters: OsonFilters = {}
 ): Promise<OsonDataResponse> {
   const params = new URLSearchParams();
-  if (filters.status && filters.status !== "all" && (!Array.isArray(filters.status) || filters.status.length > 0)) {
-    params.set("status", Array.isArray(filters.status) ? filters.status.join(",") : filters.status);
+
+  if (filters.status && filters.status !== "all" && (!Array.isArray(filters.status) || (filters.status as string[]).filter(s => s !== "all").length > 0)) {
+    const statuses = Array.isArray(filters.status)
+      ? (filters.status as string[]).filter(s => s !== "all")
+      : [filters.status as string];
+    if (statuses.length > 0) params.set("status", statuses.join(","));
   }
   if (filters.parentRegion && (!Array.isArray(filters.parentRegion) || filters.parentRegion.length > 0)) {
     params.set("parentRegion", Array.isArray(filters.parentRegion) ? filters.parentRegion.join(",") : filters.parentRegion);
@@ -107,6 +113,8 @@ export async function getOsonPharmacies(
     params.set("region", Array.isArray(filters.region) ? filters.region.join(",") : filters.region);
   }
   if (filters.search) params.set("search", filters.search);
+  if (filters.page !== undefined) params.set("page", String(filters.page));
+  if (filters.size !== undefined) params.set("size", String(filters.size));
 
   const url = `${BACKEND_URL}/api/oson/data${params.toString() ? `?${params}` : ""}`;
 
@@ -116,6 +124,21 @@ export async function getOsonPharmacies(
 
   if (!response.ok) {
     throw new Error(`Failed to fetch OSON pharmacies: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Get aggregate stats (counts + last sync time).
+ */
+export async function getOsonStats(token: string): Promise<OsonStats> {
+  const response = await fetch(`${BACKEND_URL}/api/oson/stats`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch OSON stats: ${response.statusText}`);
   }
 
   return response.json();
