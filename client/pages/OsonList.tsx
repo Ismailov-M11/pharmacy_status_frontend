@@ -708,7 +708,7 @@ function ListTab({ pharmacies, isLoading, language }: { pharmacies: OsonPharmacy
               <th className={TH}>Телефон</th>
               <th className={TH}>Время работы</th>
               <th className={TH} style={{ minWidth: "130px" }}>Обновлено</th>
-              <th className={TH} style={{ minWidth: "150px" }}>Время синхронизации</th>
+              <th className={TH} style={{ minWidth: "150px" }}>Время синхронизации OSON</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -961,8 +961,8 @@ function PharmacyDetailModal({ pharmacy, language, onClose }: { pharmacy: OsonPh
     { label: "Кэшбэк", value: pharmacy.cashback_percent > 0 ? <span className="text-teal-600 dark:text-teal-400 font-medium">{pharmacy.cashback_percent}%</span> : "—" },
     { label: "Верифицирован", value: pharmacy.is_verified ? <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><BadgeCheck className="h-3.5 w-3.5" /> Да</span> : <span className="text-gray-400">Нет</span> },
     { label: "Координаты", value: pharmacy.latitude && pharmacy.longitude ? `${pharmacy.latitude}, ${pharmacy.longitude}` : "—" },
-    { label: "Последняя синхронизация", value: formatDateTime(pharmacy.last_synced_at) },
-    { label: "Время синхронизации", value: formatDateTime(pharmacy.oson_synced_time) },
+    { label: "Обновлено", value: formatDateTime(pharmacy.last_synced_at) },
+    { label: "Время синхронизации OSON", value: formatDateTime(pharmacy.oson_synced_time) },
     { label: "Дата создания", value: formatDateTime(pharmacy.created_at) },
   ];
 
