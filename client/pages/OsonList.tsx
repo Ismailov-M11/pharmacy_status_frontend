@@ -117,20 +117,33 @@ function getMarkerColor(status: OsonStatus): string {
   }
 }
 
+const DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+};
+
+// For DB-generated timestamps (last_synced_at, created_at) stored as UTC.
+// pg returns TIMESTAMP WITHOUT TIME ZONE without 'Z', so we append it
+// to force UTC interpretation and let the browser convert to local time.
 function formatDateTime(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   try {
-    // pg returns TIMESTAMP WITHOUT TIME ZONE without 'Z'.
-    // Append 'Z' when no timezone info present so JS treats it as UTC
-    // and the browser converts to the user's local timezone correctly.
     const normalized = /Z|[+-]\d{2}:?\d{2}$/.test(dateStr) ? dateStr : dateStr + "Z";
-    return new Date(normalized).toLocaleString("ru-RU", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return new Date(normalized).toLocaleString("ru-RU", DATE_FORMAT_OPTIONS);
+  } catch {
+    return "—";
+  }
+}
+
+// For OSON API timestamps (oson_synced_time) — already in local time (UTC+5).
+// Display as-is without any timezone conversion.
+function formatOsonDateTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  try {
+    return new Date(dateStr).toLocaleString("ru-RU", DATE_FORMAT_OPTIONS);
   } catch {
     return "—";
   }
@@ -757,7 +770,7 @@ function ListTab({ pharmacies, isLoading, language }: { pharmacies: OsonPharmacy
                     ) : "—"}
                   </td>
                   <td className="px-3 py-2.5 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{formatDateTime(pharmacy.last_synced_at)}</td>
-                  <td className="px-3 py-2.5 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{formatDateTime(pharmacy.oson_synced_time)}</td>
+                  <td className="px-3 py-2.5 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{formatOsonDateTime(pharmacy.oson_synced_time)}</td>
                 </tr>
               );
             })}
@@ -964,7 +977,7 @@ function PharmacyDetailModal({ pharmacy, language, onClose }: { pharmacy: OsonPh
     { label: "Верифицирован", value: pharmacy.is_verified ? <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><BadgeCheck className="h-3.5 w-3.5" /> Да</span> : <span className="text-gray-400">Нет</span> },
     { label: "Координаты", value: pharmacy.latitude && pharmacy.longitude ? `${pharmacy.latitude}, ${pharmacy.longitude}` : "—" },
     { label: "Обновлено", value: formatDateTime(pharmacy.last_synced_at) },
-    { label: "Время синхронизации OSON", value: formatDateTime(pharmacy.oson_synced_time) },
+    { label: "Время синхронизации OSON", value: formatOsonDateTime(pharmacy.oson_synced_time) },
     { label: "Дата создания", value: formatDateTime(pharmacy.created_at) },
   ];
 
