@@ -243,16 +243,20 @@ export default function OsonList() {
         filterStatus.length > 0 && !filterStatus.includes("all") ? filterStatus : undefined;
       const loadSize = activeTab === "map" ? 0 : pageSize;
 
+      const locationFilters = {
+        parentRegion: filterParentRegion.length > 0 ? filterParentRegion : undefined,
+        region: filterRegion.length > 0 ? filterRegion : undefined,
+        search: searchQuery || undefined,
+      };
+
       const [dataRes, statsData, syncData] = await Promise.all([
         getOsonPharmacies(token, {
           status: statusFilter,
-          parentRegion: filterParentRegion.length > 0 ? filterParentRegion : undefined,
-          region: filterRegion.length > 0 ? filterRegion : undefined,
-          search: searchQuery || undefined,
+          ...locationFilters,
           page: 0,
           size: loadSize,
         }),
-        getOsonStats(token),
+        getOsonStats(token, locationFilters),
         getOsonSyncStatus(token),
       ]);
 
@@ -309,7 +313,11 @@ export default function OsonList() {
         try {
           const [status, statsData] = await Promise.all([
             getOsonSyncStatus(token),
-            getOsonStats(token),
+            getOsonStats(token, {
+              parentRegion: filterParentRegion.length > 0 ? filterParentRegion : undefined,
+              region: filterRegion.length > 0 ? filterRegion : undefined,
+              search: searchQuery || undefined,
+            }),
           ]);
           setSyncStatus({
             isSyncing: status.isSyncing,

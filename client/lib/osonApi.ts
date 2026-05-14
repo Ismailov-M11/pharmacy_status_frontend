@@ -131,9 +131,23 @@ export async function getOsonPharmacies(
 
 /**
  * Get aggregate stats (counts + last sync time).
+ * Pass the same location/search filters as getOsonPharmacies to get filtered counts.
  */
-export async function getOsonStats(token: string): Promise<OsonStats> {
-  const response = await fetch(`${BACKEND_URL}/api/oson/stats`, {
+export async function getOsonStats(
+  token: string,
+  filters: Pick<OsonFilters, "parentRegion" | "region" | "search"> = {}
+): Promise<OsonStats> {
+  const params = new URLSearchParams();
+  if (filters.parentRegion && (!Array.isArray(filters.parentRegion) || filters.parentRegion.length > 0)) {
+    params.set("parentRegion", Array.isArray(filters.parentRegion) ? filters.parentRegion.join(",") : filters.parentRegion);
+  }
+  if (filters.region && (!Array.isArray(filters.region) || filters.region.length > 0)) {
+    params.set("region", Array.isArray(filters.region) ? filters.region.join(",") : filters.region);
+  }
+  if (filters.search) params.set("search", filters.search);
+
+  const url = `${BACKEND_URL}/api/oson/stats${params.toString() ? `?${params}` : ""}`;
+  const response = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
