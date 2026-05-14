@@ -62,7 +62,7 @@ import {
   OsonProgress,
 } from "@/lib/osonApi";
 
-// ─── Map coordinates ─────────────────────────────────────────────────────────
+// ─── Map coordinates ─────────────────────────────────────────────────────────────────────
 const UZBEKISTAN_CENTER = [41.2995, 69.2401];
 
 declare global {
@@ -71,7 +71,7 @@ declare global {
   }
 }
 
-// ─── Status Helpers ───────────────────────────────────────────────────────────
+// ─── Status Helpers ─────────────────────────────────────────────────────────────────────────
 
 function getStatusLabel(status: OsonStatus, lang: string): string {
   const labels: Record<OsonStatus, Record<string, string>> = {
@@ -117,7 +117,7 @@ function getMarkerColor(status: OsonStatus): string {
   }
 }
 
-function formatDateTime(dateStr: string | null): string {
+function formatDateTime(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   try {
     return new Date(dateStr).toLocaleString("ru-RU", {
@@ -132,7 +132,7 @@ function formatDateTime(dateStr: string | null): string {
   }
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── Main Component ─────────────────────────────────────────────────────────────────────
 
 type ViewTab = "list" | "map";
 
@@ -194,7 +194,7 @@ export default function OsonList() {
   // Polling ref for sync status
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ─── Auth guard ──────────────────────────────────────────────────────────
+  // ─── Auth guard ────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!authLoading && !token) {
@@ -202,7 +202,7 @@ export default function OsonList() {
     }
   }, [token, authLoading, navigate]);
 
-  // ─── Load data ────────────────────────────────────────────────────────────
+  // ─── Load data ──────────────────────────────────────────────────────────────────────
 
   const loadData = useCallback(async () => {
     if (!token) return;
@@ -236,7 +236,7 @@ export default function OsonList() {
     }
   }, [authLoading, token, loadData]);
 
-  // ─── Sync status polling (while sync is running) ─────────────────────────
+  // ─── Sync status polling (while sync is running) ─────────────────────────────────────────
 
   useEffect(() => {
     if (isSyncing) {
@@ -272,7 +272,7 @@ export default function OsonList() {
     };
   }, [isSyncing, token, loadData]);
 
-  // ─── Trigger sync ─────────────────────────────────────────────────────────
+  // ─── Trigger sync ───────────────────────────────────────────────────────────────────
 
   const handleSync = async () => {
     if (!token) return;
@@ -289,7 +289,7 @@ export default function OsonList() {
     }
   };
 
-  // ─── Map init ─────────────────────────────────────────────────────────────
+  // ─── Map init ─────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (activeTab !== "map" || mapInitialized.current) return;
@@ -329,7 +329,7 @@ export default function OsonList() {
     }
   };
 
-  // ─── Download Excel ───────────────────────────────────────────────────────
+  // ─── Download Excel ─────────────────────────────────────────────────────────────────
 
   const handleDownloadExcel = () => {
     if (filteredPharmacies.length === 0) {
@@ -351,7 +351,7 @@ export default function OsonList() {
     toast.success("Файл успешно скачан");
   };
 
-  // ─── Frontend Stats & Filtering ──────────────────────────────────────────
+  // ─── Frontend Stats & Filtering ───────────────────────────────────────────────────────
 
   // Calculate dynamic stats from fetched pharmacies (which represent the current city/search filters)
   const displayedStats = useMemo(() => {
@@ -375,7 +375,7 @@ export default function OsonList() {
     return pharmacies.filter(p => filterStatus.includes(p.oson_status));
   }, [pharmacies, filterStatus]);
 
-  // ─── Map markers ─────────────────────────────────────────────────────────
+  // ─── Map markers ───────────────────────────────────────────────────────────────────
 
   const renderMapMarkers = useCallback(() => {
     if (!mapRef.current || !window.ymaps) return;
@@ -445,7 +445,7 @@ export default function OsonList() {
     }
   }, [theme]);
 
-  // ─── Render ───────────────────────────────────────────────────────────────
+  // ─── Render ────────────────────────────────────────────────────────────────────────────
 
   if (authLoading) {
     return (
@@ -479,10 +479,10 @@ export default function OsonList() {
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       <Header />
 
-      {/* ─── Main Content ─────────────────────────────────────────────────── */}
+      {/* ─── Main Content ──────────────────────────────────────────────────────────────────────── */}
       <main className="flex-1 flex flex-col overflow-hidden">
 
-        {/* ─── Top bar ─────────────────────────────────────────────────── */}
+        {/* ─── Top bar ─────────────────────────────────────────────────────────────────── */}
         <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-3 flex flex-col gap-3 shrink-0 relative z-20">
           {/* Title + tabs + sync button */}
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -564,12 +564,12 @@ export default function OsonList() {
             </div>
           </div>
 
-          {/* ─── Progress Bar (shown during sync) ───────────────────── */}
+          {/* ─── Progress Bar (shown during sync) ─────────────────────────────────────── */}
           {(isSyncing || syncStatus.isSyncing) && (
             <SyncProgressBar progress={syncProgress} />
           )}
 
-          {/* ─── Stats cards ──────────────────────────────────────────── */}
+          {/* ─── Stats cards ───────────────────────────────────────────────────────────── */}
           <div className="flex gap-2 flex-wrap">
             <StatsCard
               label="Всего"
@@ -601,7 +601,7 @@ export default function OsonList() {
             />
           </div>
 
-          {/* ─── Search + Filter row (list only) ─────────────────────── */}
+          {/* ─── Search + Filter row (list only) ───────────────────────────────────────── */}
           {activeTab === "list" && (
           <div className="flex gap-2 flex-wrap">
             <div className="relative flex-1 min-w-[200px]">
@@ -647,7 +647,7 @@ export default function OsonList() {
           )}
         </div>
 
-        {/* ─── Content area ──────────────────────────────────────────────── */}
+        {/* ─── Content area ─────────────────────────────────────────────────────────────────────── */}
         <div className="flex-1 overflow-hidden relative">
           {activeTab === "list" ? (
             <ListTab
@@ -676,7 +676,7 @@ export default function OsonList() {
         </div>
       </main>
 
-      {/* ─── Confirm Dialog ──────────────────────────────────────────────── */}
+      {/* ─── Confirm Dialog ─────────────────────────────────────────────────────────────────────── */}
       <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -702,7 +702,7 @@ export default function OsonList() {
   );
 }
 
-// ─── Stats Card Component ─────────────────────────────────────────────────────
+// ─── Stats Card Component ─────────────────────────────────────────────────────────────────────
 
 function StatsCard({
   label,
@@ -752,7 +752,7 @@ function StatsCard({
   );
 }
 
-// ─── Sync Progress Bar Component ─────────────────────────────────────────────
+// ─── Sync Progress Bar Component ─────────────────────────────────────────────────────────────────
 
 function getPhaseLabel(phase: string): string {
   switch (phase) {
@@ -842,7 +842,7 @@ function ListTab({
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-800 overflow-hidden relative">
       <div className="flex-1 overflow-auto">
-      <table className="text-sm border-collapse" style={{ minWidth: "1900px", width: "100%" }}>
+      <table className="text-sm border-collapse" style={{ minWidth: "2050px", width: "100%" }}>
         <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
           <tr>
             <th className={`${TH} w-12 text-center whitespace-nowrap`}>#</th>
@@ -856,6 +856,7 @@ function ListTab({
             <th className={TH}>Телефон</th>
             <th className={TH}>Время работы</th>
             <th className={TH} style={{ minWidth: "130px" }}>Обновлено</th>
+            <th className={TH} style={{ minWidth: "150px" }}>Время синхронизации</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -978,9 +979,14 @@ function ListTab({
                   )}
                 </td>
 
-                {/* Last synced */}
+                {/* Last synced (our backend sync time) */}
                 <td className="px-3 py-2.5 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                   {formatDateTime(pharmacy.last_synced_at)}
+                </td>
+
+                {/* OSON Synced Time (SyncedTime from OSON API) */}
+                <td className="px-3 py-2.5 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                  {formatDateTime(pharmacy.oson_synced_time)}
                 </td>
               </tr>
             );
@@ -1061,7 +1067,7 @@ function ListTab({
   );
 }
 
-// ─── MultiSelect Dropdown Component ──────────────────────────────────────────
+// ─── MultiSelect Dropdown Component ──────────────────────────────────────────────────────────────────
 
 function MultiSelectDropdown({ 
   label, 
@@ -1204,7 +1210,7 @@ function MultiSelectDropdown({
   );
 }
 
-// ─── Map Tab ──────────────────────────────────────────────────────────────────
+// ─── Map Tab ────────────────────────────────────────────────────────────────────────────────
 
 function MapTab({
   containerRef,
@@ -1243,7 +1249,7 @@ function MapTab({
 
   return (
     <div className="flex h-full w-full">
-      {/* ─── Left filter panel (sidebar) ─────────────────────────── */}
+      {/* ─── Left filter panel (sidebar) ─────────────────────────────────────────────── */}
       <div className="w-72 shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex flex-col gap-4 overflow-y-auto z-10">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
           Фильтры карты
@@ -1324,7 +1330,7 @@ function MapTab({
         </div>
       </div>
 
-      {/* ─── Map container ────────────────────────────────────────────── */}
+      {/* ─── Map container ────────────────────────────────────────────────────────────── */}
       <div className="flex-1 relative h-full w-full z-0 bg-gray-100 dark:bg-gray-900">
         <div ref={containerRef} className="absolute inset-0 w-full h-full" />
 
@@ -1342,7 +1348,7 @@ function MapTab({
   );
 }
 
-// ─── Pharmacy Detail Modal ────────────────────────────────────────────────────
+// ─── Pharmacy Detail Modal ─────────────────────────────────────────────────────────────────────────
 
 function PharmacyDetailModal({
   pharmacy,
@@ -1446,6 +1452,7 @@ function PharmacyDetailModal({
         : "—",
     },
     { label: "Последняя синхронизация", value: formatDateTime(pharmacy.last_synced_at) },
+    { label: "Время синхронизации", value: formatDateTime(pharmacy.oson_synced_time) },
     { label: "Дата создания", value: formatDateTime(pharmacy.created_at) },
   ];
 

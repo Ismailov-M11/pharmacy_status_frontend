@@ -1,4 +1,4 @@
-// ─── Types ──────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────────────
 
 export type OsonStatus = "connected" | "not_connected" | "deleted";
 
@@ -26,6 +26,7 @@ export interface OsonPharmacy {
   cashback_percent: number;
   oson_status: OsonStatus;
   last_synced_at: string;
+  oson_synced_time: string | null;
   created_at: string;
 }
 
@@ -72,7 +73,7 @@ export interface OsonFilters {
   search?: string;
 }
 
-// ─── Backend Base URL ────────────────────────────────────────────────────────
+// ─── Backend Base URL ────────────────────────────────────────────────────────────
 
 // VITE_BACKEND_URL may end with "/api/status" or "/api" — we need the root
 // e.g. "https://pharmacystatusbackend-production.up.railway.app/api/status"
@@ -86,7 +87,7 @@ function getBackendRoot(): string {
 const BACKEND_URL = getBackendRoot();
 
 
-// ─── API Functions ───────────────────────────────────────────────────────────
+// ─── API Functions ───────────────────────────────────────────────────────────────
 
 /**
  * Get all OSON pharmacies with optional filters
