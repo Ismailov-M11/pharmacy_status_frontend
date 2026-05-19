@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { getLeadsList, getPharmacyList, getPharmacyStatus, Pharmacy, getUserColumnSettings, saveUserColumnSettings, ColumnSettings, updatePharmacyStatusLocal, getMarketSessionList } from "@/lib/api";
+import { getLeadsList, getPharmacyList, getPharmacyStatus, Pharmacy, getUserColumnSettings, saveUserColumnSettings, ColumnSettings, updatePharmacyStatusLocal, getMarketSessionList, updateLeadStatus } from "@/lib/api";
 import { PharmacyTable } from "@/components/PharmacyTable";
 import { Header } from "@/components/Header";
 import { PharmacyDetailModal } from "@/components/PharmacyDetailModal";
@@ -309,7 +309,11 @@ export default function LeadsPanel() {
         const seen = new Set<string>();
         const unique: Pharmacy[] = [];
 
-        for (const lead of filteredLeads) {
+        const source = selectedRows.size > 0
+            ? filteredLeads.filter(p => selectedRows.has(p.id))
+            : filteredLeads;
+
+        for (const lead of source) {
             const key = lead.stir && lead.stir.trim() ? lead.stir.trim() : `__id_${lead.id}`;
             if (!seen.has(key)) {
                 seen.add(key);
@@ -353,7 +357,11 @@ export default function LeadsPanel() {
             'Название банка', 'Банковский счет', 'МФО',
         ];
 
-        const rows = filteredLeads.map((p, i) => {
+        const downloadSource = selectedRows.size > 0
+            ? filteredLeads.filter(p => selectedRows.has(p.id))
+            : filteredLeads;
+
+        const rows = downloadSource.map((p, i) => {
             const lastComment = getLastCommentLocal(p.comments || []);
             const regionName = typeof p.region === 'object' && p.region?.name
                 ? p.region.name
@@ -395,6 +403,30 @@ export default function LeadsPanel() {
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Лиды');
         XLSX.writeFile(wb, `leads_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    };
+
+    const handleUpdateLeadStatus = async (status: string) => {
+        const selectedPharmacies = filteredLeads.filter(p => selectedRows.has(p.id));
+        if (selectedPharmacies.length === 0) return;
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const pharmacy of selectedPharmacies) {
+            if (pharmacy.lead?.id) {
+                try {
+                    await updateLeadStatus(token!, pharmacy.lead.id, status);
+                    successCount++;
+                } catch {
+                    errorCount++;
+                }
+            }
+        }
+
+        if (successCount > 0) toast.success(`Статус обновлён для ${successCount} лидов`);
+        if (errorCount > 0) toast.error(`Ошибка при обновлении ${errorCount} лидов`);
+
+        if (successCount > 0) fetchData();
     };
 
     // Filter Logic
@@ -656,7 +688,7 @@ export default function LeadsPanel() {
                         isLeadsPage={true}
                         selectedRows={selectedRows}
                         onSelectionChange={setSelectedRows}
-                        onSettingsClick={() => setIsSettingsMenuOpen(true)}
+                        onSettingsClick={() => setIsColumnSettingsOpen(true)}
                         columnSettings={columnSettings}
 
                         // STIR Filter
@@ -682,6 +714,7 @@ export default function LeadsPanel() {
                         }}
                         onCopyRequisites={handleCopyRequisites}
                         onDownload={role === 'ROLE_ADMIN' ? handleDownload : undefined}
+                        onUpdateLeadStatus={handleUpdateLeadStatus}
                     />
                     {/* Pagination bottom bar */}
                     {!isLoading && filteredLeads.length > 0 && (

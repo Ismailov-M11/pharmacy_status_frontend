@@ -274,6 +274,25 @@ export async function getMarketSessionList(
   }
 }
 
+export async function updateLeadStatus(
+  token: string,
+  leadId: number,
+  status: string,
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/lead/change-status/${leadId}?status=${encodeURIComponent(status)}`, {
+    method: "POST",
+    headers: {
+      accept: "application/json, text/plain, */*",
+      authorization: `Bearer ${token}`,
+      "content-type": "application/x-www-form-urlencoded",
+      "content-length": "0",
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to update lead status for lead ${leadId}`);
+  }
+}
+
 export async function updatePharmacyStatus(
   token: string,
   pharmacyId: number,

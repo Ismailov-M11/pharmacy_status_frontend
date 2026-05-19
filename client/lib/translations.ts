@@ -181,6 +181,13 @@ export const translations = {
     resetToDefault: "Сбросить",
     dragToReorder: "Перетащите для изменения порядка",
 
+    // Actions menu
+    copyRequisites: "Скопировать реквизиты",
+    downloadXlsx: "Скачать",
+    updateLeadStatus: "Обновить Lead статус",
+    selectLeadStatus: "Выберите статус Lead",
+    noRowsSelectedForUpdate: "Выберите строки для обновления",
+
     // Pharmacy Details Modal
     pharmacyDetails: "Детали аптеки",
     details: "Детали",
@@ -456,6 +463,13 @@ export const translations = {
     saveChanges: "O'zgarishlarni saqlash",
     resetToDefault: "Qayta tiklash",
     dragToReorder: "Tartibni o'zgartirish uchun sudrab oling",
+
+    // Actions menu
+    copyRequisites: "Rekvizitlarni nusxalash",
+    downloadXlsx: "Yuklab olish",
+    updateLeadStatus: "Lead statusini yangilash",
+    selectLeadStatus: "Lead statusini tanlang",
+    noRowsSelectedForUpdate: "Yangilash uchun qatorlarni tanlang",
 
     // Pharmacy Details Modal
     pharmacyDetails: "Dorixona tafsilotlari",

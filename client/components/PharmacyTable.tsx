@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, RefreshCw, Settings, Square, CheckSquare, ListFilter, Copy, Download } from "lucide-react";
+import { ChevronDown, RefreshCw, Square, CheckSquare, ListFilter, ChevronRight, X } from "lucide-react";
 
 interface PharmacyTableProps {
   pharmacies: Pharmacy[];
@@ -65,6 +65,7 @@ interface PharmacyTableProps {
   // Copy and Download actions
   onCopyRequisites?: () => void;
   onDownload?: () => void;
+  onUpdateLeadStatus?: (status: string) => void;
 }
 
 export function PharmacyTable({
@@ -116,8 +117,12 @@ export function PharmacyTable({
   districtSortOrder = null,
   onCopyRequisites,
   onDownload,
+  onUpdateLeadStatus,
 }: PharmacyTableProps) {
   const { t } = useLanguage();
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const [isStatusPickerOpen, setIsStatusPickerOpen] = useState(false);
+  const [pickedStatus, setPickedStatus] = useState<string | null>(null);
 
   const orderedColumns = isLeadsPage && columnSettings
     ? columnSettings.filter(c => c.visible).sort((a, b) => a.order - b.order)
@@ -748,6 +753,7 @@ export function PharmacyTable({
     <div className="p-2 sm:p-4 space-y-4 sticky top-[82px] z-30 bg-gray-50 dark:bg-gray-800">
       {isLeadsPage ? (
         // Leads page layout: Single row with selection | centered search | action buttons
+        <>
         <div className="flex items-center justify-between gap-4">
           {/* Left: Selection button */}
           <div className="flex gap-2 flex-shrink-0">
@@ -775,41 +781,17 @@ export function PharmacyTable({
             )}
           </div>
 
-          {/* Center: Search field */}
+          {/* Center: Search field — full width */}
           <Input
             type="text"
             placeholder={`${t.pharmacyName} / ${t.address}...`}
             value={searchQuery}
             onChange={(e) => onSearchChange?.(e.target.value)}
-            className="max-w-md flex-shrink"
+            className="flex-1 min-w-0"
           />
 
           {/* Right: Action buttons */}
           <div className="flex gap-2 flex-shrink-0">
-            {onCopyRequisites && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onCopyRequisites}
-                className="gap-1.5 whitespace-nowrap"
-              >
-                <Copy className="h-4 w-4" />
-                Скопировать реквизиты
-              </Button>
-            )}
-
-            {onDownload && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onDownload}
-                className="gap-1.5 whitespace-nowrap"
-              >
-                <Download className="h-4 w-4" />
-                Скачать
-              </Button>
-            )}
-
             {onRefresh && (
               <Button
                 variant="outline"
@@ -858,16 +840,147 @@ export function PharmacyTable({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Settings button */}
+            {/* Actions button */}
             <Button
               variant="outline"
-              size="icon"
-              onClick={onSettingsClick}
+              size="sm"
+              onClick={() => setIsActionsOpen(true)}
+              className="gap-1.5 whitespace-nowrap"
             >
-              <Settings className="h-4 w-4" />
+              {t.actions}
+              <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
         </div>
+
+        {/* Actions Modal */}
+        {isActionsOpen && (
+          <>
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setIsActionsOpen(false)} />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-md w-full">
+                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{t.actions}</h2>
+                  <button onClick={() => setIsActionsOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="p-4 space-y-1">
+                  <button
+                    onClick={() => { onSettingsClick?.(); setIsActionsOpen(false); }}
+                    className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <div className="font-medium text-gray-900 dark:text-gray-100">{t.reorderColumns}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t.dragToReorder}</div>
+                  </button>
+
+                  {onCopyRequisites && (
+                    <button
+                      onClick={() => { onCopyRequisites(); setIsActionsOpen(false); }}
+                      className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{t.copyRequisites}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        {selectedRows && selectedRows.size > 0
+                          ? `${t.selected}: ${selectedRows.size}`
+                          : t.allPharmacies}
+                      </div>
+                    </button>
+                  )}
+
+                  {onDownload && (
+                    <button
+                      onClick={() => { onDownload(); setIsActionsOpen(false); }}
+                      className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{t.downloadXlsx}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        {selectedRows && selectedRows.size > 0
+                          ? `${t.selected}: ${selectedRows.size}`
+                          : t.allPharmacies}
+                      </div>
+                    </button>
+                  )}
+
+                  <div className="border-t border-gray-200 dark:border-gray-700 my-2" />
+
+                  {onUpdateLeadStatus && (
+                    <button
+                      onClick={() => {
+                        if (!selectedRows || selectedRows.size === 0) return;
+                        setPickedStatus(null);
+                        setIsActionsOpen(false);
+                        setIsStatusPickerOpen(true);
+                      }}
+                      disabled={!selectedRows || selectedRows.size === 0}
+                      className="w-full text-left px-4 py-3 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-gray-100 dark:enabled:hover:bg-gray-800"
+                    >
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{t.updateLeadStatus}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        {!selectedRows || selectedRows.size === 0
+                          ? t.noRowsSelectedForUpdate
+                          : `${t.selected}: ${selectedRows.size}`}
+                      </div>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Status Picker Modal */}
+        {isStatusPickerOpen && (
+          <>
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setIsStatusPickerOpen(false)} />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-sm w-full">
+                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{t.updateLeadStatus}</h2>
+                  <button onClick={() => setIsStatusPickerOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="p-4 space-y-1">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 px-4 pb-2">{t.selectLeadStatus}</p>
+                  {(leadStatusOptions || [])
+                    .filter(s => s.toLowerCase() !== 'converted')
+                    .map(status => (
+                      <button
+                        key={status}
+                        onClick={() => setPickedStatus(status)}
+                        className={`w-full text-left px-4 py-2.5 rounded-lg transition-colors font-medium ${
+                          pickedStatus === status
+                            ? "bg-blue-600 text-white"
+                            : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100"
+                        }`}
+                      >
+                        {status}
+                      </button>
+                    ))}
+                </div>
+                <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setIsStatusPickerOpen(false)}>
+                    {t.cancel || "Отмена"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={!pickedStatus}
+                    onClick={() => {
+                      if (pickedStatus) {
+                        onUpdateLeadStatus?.(pickedStatus);
+                        setIsStatusPickerOpen(false);
+                      }
+                    }}
+                  >
+                    {t.update}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+        </>
       ) : (
         // Original layout for other pages
         <div className="flex flex-row gap-2 sm:gap-4 items-center justify-between">
