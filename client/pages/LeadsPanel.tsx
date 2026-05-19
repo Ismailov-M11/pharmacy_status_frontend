@@ -426,7 +426,10 @@ export default function LeadsPanel() {
         if (successCount > 0) toast.success(`Статус обновлён для ${successCount} лидов`);
         if (errorCount > 0) toast.error(`Ошибка при обновлении ${errorCount} лидов`);
 
-        if (successCount > 0) fetchData();
+        if (successCount > 0) {
+            setSelectedRows(new Set());
+            fetchData();
+        }
     };
 
     // Filter Logic
