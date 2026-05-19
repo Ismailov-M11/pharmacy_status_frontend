@@ -124,6 +124,8 @@ export function PharmacyTable({
   const [isStatusPickerOpen, setIsStatusPickerOpen] = useState(false);
   const [pickedStatus, setPickedStatus] = useState<string | null>(null);
 
+  const LEAD_STATUSES = ["NA", "ACCEPTED", "WB", "WMO", "WDO", "SBC", "REJECTED"];
+
   const orderedColumns = isLeadsPage && columnSettings
     ? columnSettings.filter(c => c.visible).sort((a, b) => a.order - b.order)
     : null;
@@ -944,9 +946,7 @@ export function PharmacyTable({
                 </div>
                 <div className="p-4 space-y-1">
                   <p className="text-sm text-gray-500 dark:text-gray-400 px-4 pb-2">{t.selectLeadStatus}</p>
-                  {(leadStatusOptions || [])
-                    .filter(s => s.toLowerCase() !== 'converted')
-                    .map(status => (
+                  {LEAD_STATUSES.map(status => (
                       <button
                         key={status}
                         onClick={() => setPickedStatus(status)}
