@@ -310,7 +310,7 @@ export default function LeadsPanel() {
         const unique: Pharmacy[] = [];
 
         const source = selectedRows.size > 0
-            ? filteredLeads.filter(p => selectedRows.has(p.id))
+            ? leads.filter(p => selectedRows.has(p.id))
             : filteredLeads;
 
         for (const lead of source) {
@@ -358,7 +358,7 @@ export default function LeadsPanel() {
         ];
 
         const downloadSource = selectedRows.size > 0
-            ? filteredLeads.filter(p => selectedRows.has(p.id))
+            ? leads.filter(p => selectedRows.has(p.id))
             : filteredLeads;
 
         const rows = downloadSource.map((p, i) => {
@@ -406,7 +406,7 @@ export default function LeadsPanel() {
     };
 
     const handleUpdateLeadStatus = async (status: string) => {
-        const selectedPharmacies = filteredLeads.filter(p => selectedRows.has(p.id));
+        const selectedPharmacies = leads.filter(p => selectedRows.has(p.id));
         if (selectedPharmacies.length === 0) return;
 
         let successCount = 0;
