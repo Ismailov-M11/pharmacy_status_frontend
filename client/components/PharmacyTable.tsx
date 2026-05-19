@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, RefreshCw, Square, CheckSquare, ListFilter, ChevronRight, X } from "lucide-react";
+import { ChevronDown, RefreshCw, Square, CheckSquare, ListFilter, Zap, X } from "lucide-react";
 
 interface PharmacyTableProps {
   pharmacies: Pharmacy[];
@@ -847,8 +847,9 @@ export function PharmacyTable({
               onClick={() => setIsActionsOpen(true)}
               className="gap-1.5 whitespace-nowrap"
             >
+              <Zap className="w-4 h-4" />
               {t.actions}
-              <ChevronRight className="w-4 h-4" />
+              <ChevronDown className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -856,8 +857,8 @@ export function PharmacyTable({
         {/* Actions Modal */}
         {isActionsOpen && (
           <>
-            <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setIsActionsOpen(false)} />
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-[60]" onClick={() => setIsActionsOpen(false)} />
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
               <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-md w-full">
                 <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{t.actions}</h2>
@@ -932,8 +933,8 @@ export function PharmacyTable({
         {/* Status Picker Modal */}
         {isStatusPickerOpen && (
           <>
-            <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setIsStatusPickerOpen(false)} />
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-[60]" onClick={() => setIsStatusPickerOpen(false)} />
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
               <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-sm w-full">
                 <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{t.updateLeadStatus}</h2>
