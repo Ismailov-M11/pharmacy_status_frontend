@@ -44,7 +44,7 @@ export interface CampaignListRequest {
 }
 
 export interface CreateCampaignRequest {
-  types: string[];
+  type: string;
   title: string;
   titleRu: string;
   body: string;

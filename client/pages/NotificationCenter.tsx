@@ -304,22 +304,26 @@ function CreateCampaignModal({
 
     setIsSubmitting(true);
     try {
-      const result = await createCampaign(token, {
-        types: selectedTypes,
-        title: form.title,
-        titleRu: form.titleRu,
-        body: form.body,
-        bodyRu: form.bodyRu,
-        source: "HAMBI",
-      }, baseUrl);
-      const campaignId: number | undefined =
-        result?.payload?.id ?? result?.id ?? undefined;
+      const results = await Promise.all(
+        selectedTypes.map((type) =>
+          createCampaign(token, {
+            type,
+            title: form.title,
+            titleRu: form.titleRu,
+            body: form.body,
+            bodyRu: form.bodyRu,
+            source: "HAMBI",
+          }, baseUrl)
+        )
+      );
+      const firstId: number | undefined =
+        results[0]?.payload?.id ?? results[0]?.id ?? undefined;
       setForm({ title: "", titleRu: "", body: "", bodyRu: "" });
       setSelectedTypes(["PUSH", "TG"]);
       setShowExisting(false);
       setExistingSearch("");
       onClose();
-      onCreated(campaignId);
+      onCreated(firstId);
     } catch (err: any) {
       toast.error(`Ошибка при создании: ${err?.message ?? "Неизвестная ошибка"}`);
     } finally {
