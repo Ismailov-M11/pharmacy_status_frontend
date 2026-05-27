@@ -252,6 +252,7 @@ function CreateCampaignModal({
     body: "",
     bodyRu: "",
   });
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(["PUSH", "TG"]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // ── "Copy from existing" section ──────────────────────────────────────────
@@ -296,11 +297,15 @@ function CreateCampaignModal({
       toast.error("Заполните текст уведомления на обоих языках");
       return;
     }
+    if (selectedTypes.length === 0) {
+      toast.error("Выберите хотя бы один тип кампании");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       const result = await createCampaign(token, {
-        type: "IN_APP",
+        types: selectedTypes,
         title: form.title,
         titleRu: form.titleRu,
         body: form.body,
@@ -310,6 +315,7 @@ function CreateCampaignModal({
       const campaignId: number | undefined =
         result?.payload?.id ?? result?.id ?? undefined;
       setForm({ title: "", titleRu: "", body: "", bodyRu: "" });
+      setSelectedTypes(["PUSH", "TG"]);
       setShowExisting(false);
       setExistingSearch("");
       onClose();
@@ -324,6 +330,7 @@ function CreateCampaignModal({
   const handleClose = () => {
     if (isSubmitting) return;
     setForm({ title: "", titleRu: "", body: "", bodyRu: "" });
+    setSelectedTypes(["PUSH", "TG"]);
     setShowExisting(false);
     setExistingSearch("");
     onClose();
@@ -342,14 +349,28 @@ function CreateCampaignModal({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Badges row */}
-          <div className="flex gap-2">
-            <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 border-0 text-xs">
-              IN_APP
-            </Badge>
-            <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 border-0 text-xs">
-              HAMBI
-            </Badge>
+          {/* Type selection */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Тип кампании</span>
+            <div className="flex gap-4">
+              {(["PUSH", "TG"] as const).map((t) => (
+                <label key={t} className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={selectedTypes.includes(t)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedTypes((prev) => [...prev, t]);
+                      } else {
+                        setSelectedTypes((prev) => prev.filter((x) => x !== t));
+                      }
+                    }}
+                    className="w-4 h-4 accent-purple-600 cursor-pointer"
+                  />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t}</span>
+                </label>
+              ))}
+            </div>
           </div>
 
           {/* Copy from existing */}
