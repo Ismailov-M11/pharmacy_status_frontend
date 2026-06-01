@@ -27,6 +27,8 @@ interface PharmacyTableProps {
   onTrainingFilterChange: (value: boolean | null) => void;
   merchantStatusFilter?: boolean | null;
   onMerchantStatusFilterChange?: (value: boolean | null) => void;
+  davoContractFilter?: string | null;
+  onDavoContractFilterChange?: (value: string | null) => void;
   searchQuery?: string;
   onSearchChange?: (value: string) => void;
   onPharmacyClick?: (pharmacy: Pharmacy) => void;
@@ -82,6 +84,8 @@ export function PharmacyTable({
   onTrainingFilterChange,
   merchantStatusFilter,
   onMerchantStatusFilterChange,
+  davoContractFilter,
+  onDavoContractFilterChange,
   searchQuery = "",
   onSearchChange,
   onPharmacyClick,
@@ -562,12 +566,45 @@ export function PharmacyTable({
           </th>
         );
 
-      case "davoContract":
+      case "davoContract": {
+        const hasDavoFilter = davoContractFilter !== null;
         return (
-          <th key={col.id} className="px-2 md:px-4 py-2 md:py-3 text-center text-xs font-semibold text-gray-600 uppercase whitespace-nowrap">
-            {(t as any).davoContract || "Davo - договор"}
+          <th key={col.id} className="px-2 md:px-4 py-2 md:py-3 text-center font-semibold text-gray-700 whitespace-nowrap min-w-max">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="-ml-3 h-8 data-[state=open]:bg-purple-600 data-[state=open]:text-white">
+                  <div className="flex items-center gap-2">
+                    <span>{(t as any).davoContract || "Davo - договор"}</span>
+                    {hasDavoFilter && (
+                      <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">1</span>
+                    )}
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuRadioGroup
+                  value={davoContractFilter ?? "null"}
+                  onValueChange={(val) => onDavoContractFilterChange?.(val === "null" ? null : val)}
+                >
+                  <DropdownMenuRadioItem value="null">{t.allPharmacies || "Все"}</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="pending" className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 focus:bg-amber-200 dark:focus:bg-amber-800 m-1 cursor-pointer">
+                    Ожидает
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="signed" className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 focus:bg-emerald-200 dark:focus:bg-emerald-800 m-1 cursor-pointer">
+                    Подписан
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="rejected" className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 focus:bg-red-200 dark:focus:bg-red-800 m-1 cursor-pointer">
+                    Отказан
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="none" className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 focus:bg-gray-200 dark:focus:bg-gray-700 m-1 cursor-pointer">
+                    Нет договора
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </th>
         );
+      }
 
       default:
         return null;

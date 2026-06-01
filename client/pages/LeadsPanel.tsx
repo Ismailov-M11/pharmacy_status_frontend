@@ -47,6 +47,7 @@ export default function LeadsPanel() {
     const [trainingFilter, setTrainingFilter] = useState<boolean | null>(null);
 
     const [merchantStatusFilter, setMerchantStatusFilter] = useState<boolean | null>(null);
+    const [davoContractFilter, setDavoContractFilter] = useState<string | null>(null);
 
     // Region and District filters with modal support
     const [regionFilter, setRegionFilter] = useState<string[]>([]);
@@ -543,18 +544,24 @@ export default function LeadsPanel() {
                 ? true
                 : p.merchantOnline === merchantStatusFilter;
 
-            // 11. Region Filter
+            // 11. Davo Contract Filter
+            const contractStatus = (p as any).davoContract?.status ?? "none";
+            const matchesDavoContract = davoContractFilter === null
+                ? true
+                : contractStatus === davoContractFilter;
+
+            // 13. Region Filter
             const regionName = typeof p.region === 'object' && p.region?.name ? p.region.name : (typeof p.region === 'string' ? p.region : null);
             const matchesRegion = regionFilter.length === 0
                 ? true
                 : regionName && regionFilter.includes(regionName);
 
-            // 12. District Filter
+            // 14. District Filter
             const matchesDistrict = districtFilter.length === 0
                 ? true
                 : p.district && districtFilter.includes(p.district);
 
-            return matchesSearch && matchesLeadStatus && matchesActive && matchesCommentUser && matchesCommentDate && matchesStir && matchesTelegramBot && matchesBrandedPacket && matchesTraining && matchesMerchantStatus && matchesRegion && matchesDistrict;
+            return matchesSearch && matchesLeadStatus && matchesActive && matchesCommentUser && matchesCommentDate && matchesStir && matchesTelegramBot && matchesBrandedPacket && matchesTraining && matchesMerchantStatus && matchesDavoContract && matchesRegion && matchesDistrict;
         });
 
         // Apply STIR sorting if enabled
@@ -592,7 +599,7 @@ export default function LeadsPanel() {
 
         setFilteredLeads(filtered);
         setCurrentPage(0); // reset page on filter change
-    }, [searchQuery, leads, leadStatusFilter, activeFilter, commentUserFilter, commentDateFilter, stirFilter, stirSortOrder, telegramBotFilter, brandedPacketFilter, trainingFilter, merchantStatusFilter, regionFilter, districtFilter, regionSortOrder, districtSortOrder]);
+    }, [searchQuery, leads, leadStatusFilter, activeFilter, commentUserFilter, commentDateFilter, stirFilter, stirSortOrder, telegramBotFilter, brandedPacketFilter, trainingFilter, merchantStatusFilter, davoContractFilter, regionFilter, districtFilter, regionSortOrder, districtSortOrder]);
 
     if (authLoading) {
         return (
@@ -679,8 +686,9 @@ export default function LeadsPanel() {
                         trainingFilter={trainingFilter}
                         onTrainingFilterChange={setTrainingFilter}
                         merchantStatusFilter={merchantStatusFilter}
-
                         onMerchantStatusFilterChange={setMerchantStatusFilter}
+                        davoContractFilter={davoContractFilter}
+                        onDavoContractFilterChange={setDavoContractFilter}
 
                         // Search
                         searchQuery={searchQuery}
