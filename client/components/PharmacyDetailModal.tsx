@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { Pharmacy, StatusHistoryRecord, uploadPharmacyFile, getLeadNotes, LeadNote, createLeadNote } from "@/lib/api";
+import { ContractPanel } from "./ContractPanel";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -59,7 +60,7 @@ export function PharmacyDetailModal({
   const { token } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    "details" | "training" | "package" | "history" | "leadHistory" | "files"
+    "details" | "training" | "package" | "history" | "leadHistory" | "files" | "contract"
   >("details");
   const [trainingComment, setTrainingComment] = useState("");
   const [packageComment, setPackageComment] = useState("");
@@ -304,6 +305,16 @@ export function PharmacyDetailModal({
                 }`}
             >
               {t.files || "Files"}
+            </button>
+            {/* Contract Tab */}
+            <button
+              onClick={() => setActiveTab("contract")}
+              className={`px-2 sm:px-4 py-2 font-medium border-b-2 transition-colors text-xs sm:text-sm whitespace-nowrap ${activeTab === "contract"
+                ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                }`}
+            >
+              {(t as any).contract || "Договор"}
             </button>
           </div>
         </div>
@@ -894,6 +905,18 @@ export function PharmacyDetailModal({
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* Contract Tab Content */}
+          {activeTab === "contract" && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                {(t as any).contract || "Договор"}
+              </h3>
+              <ContractPanel
+                tin={(pharmacy.lead as any)?.stir || (pharmacy as any)?.stir || null}
+              />
             </div>
           )}
         </div>

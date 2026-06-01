@@ -280,6 +280,11 @@ export const translations = {
     // Pagination
     of: "из",
     rowsPerPage: "Строк:",
+
+    // Didox Contract
+    davoContract: "Davo - договор",
+    contract: "Договор",
+    noContract: "Нет договора",
   },
   uz: {
     // Common
@@ -563,6 +568,11 @@ export const translations = {
     // Pagination
     of: "dan",
     rowsPerPage: "Qatorlar:",
+
+    // Didox Contract
+    davoContract: "Davo - shartnoma",
+    contract: "Shartnoma",
+    noContract: "Shartnoma yo'q",
   },
 };
 

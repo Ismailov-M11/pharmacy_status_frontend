@@ -1,5 +1,5 @@
 // PharmacyTable component
-import { Pharmacy, ColumnSettings } from "@/lib/api";
+import { Pharmacy, ColumnSettings, DavoContractStatus } from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
 import React, { useState } from "react";
 import {
@@ -562,6 +562,13 @@ export function PharmacyTable({
           </th>
         );
 
+      case "davoContract":
+        return (
+          <th key={col.id} className="px-2 md:px-4 py-2 md:py-3 text-center text-xs font-semibold text-gray-600 uppercase whitespace-nowrap">
+            {(t as any).davoContract || "Davo - договор"}
+          </th>
+        );
+
       default:
         return null;
     }
@@ -635,6 +642,27 @@ export function PharmacyTable({
         return <td key={col.id} className="px-2 md:px-4 py-2 md:py-3 text-gray-900 text-xs whitespace-nowrap align-middle">{regionName}</td>;
       }
       case "district": return <td key={col.id} className="px-2 md:px-4 py-2 md:py-3 text-gray-900 text-xs whitespace-nowrap align-middle">{pharmacy.district || pharmacy.lead?.district || "-"}</td>;
+
+      case "davoContract": {
+        const c = (pharmacy as any).davoContract as DavoContractStatus | null | undefined;
+        const cls = {
+          signed:   "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300",
+          pending:  "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300",
+          rejected: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+          none:     "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+        }[c?.status || "none"];
+        return (
+          <td key={col.id} className="px-2 md:px-4 py-2 md:py-3 text-center">
+            <button
+              onClick={() => onPharmacyClick?.(pharmacy)}
+              className={`px-2 py-1 rounded text-xs font-bold inline-block whitespace-nowrap ${cls}`}
+              title={c?.status_comment || undefined}
+            >
+              {c?.label || ((t as any).noContract || "Нет договора")}
+            </button>
+          </td>
+        );
+      }
 
       case "files":
         return (

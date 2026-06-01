@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { getLeadsList, getPharmacyList, getPharmacyStatus, Pharmacy, getUserColumnSettings, saveUserColumnSettings, ColumnSettings, updatePharmacyStatusLocal, getMarketSessionList, updateLeadStatus } from "@/lib/api";
+import { getLeadsList, getPharmacyList, getPharmacyStatus, Pharmacy, getUserColumnSettings, saveUserColumnSettings, ColumnSettings, updatePharmacyStatusLocal, getMarketSessionList, updateLeadStatus, getDavoContractStatus } from "@/lib/api";
 import { PharmacyTable } from "@/components/PharmacyTable";
 import { Header } from "@/components/Header";
 import { PharmacyDetailModal } from "@/components/PharmacyDetailModal";
@@ -125,6 +125,7 @@ export default function LeadsPanel() {
         { id: "pharmacyPhone", label: t.pharmacyPhone || "Phone", visible: true, order: 5 },
         { id: "leadPhone", label: t.leadPhone || "Lead Phone", visible: true, order: 6 },
         { id: "merchantStatus", label: t.merchantStatus || "Merchant - статус", visible: true, order: 8 },
+        { id: "davoContract", label: (t as any).davoContract || "Davo - договор", visible: true, order: 8.5 },
         { id: "telegramBot", label: t.telegramBot || "Bot", visible: true, order: 9 },
         { id: "training", label: t.training || "Training", visible: true, order: 10 },
         { id: "brandedPacket", label: t.brandedPacket || "Packet", visible: true, order: 11 },
@@ -179,12 +180,16 @@ export default function LeadsPanel() {
                 let status = { brandedPacket: false, training: false };
                 let merchantOnline = false;
 
+                let davoContract = null;
+                const tin = item?.stir || marketMatch?.stir || null;
+
                 if (marketMatch) {
                     try {
-                        // Fetch both status and session data in parallel
-                        const [fetchedStatus, sessionData] = await Promise.all([
+                        // Fetch status, session data, and contract status in parallel
+                        const [fetchedStatus, sessionData, contractStatus] = await Promise.all([
                             getPharmacyStatus(marketMatch.id),
                             getMarketSessionList(token, marketMatch.id),
+                            tin ? getDavoContractStatus(String(tin)) : Promise.resolve(null),
                         ]);
 
                         status.brandedPacket = fetchedStatus.brandedPacket;
@@ -194,8 +199,16 @@ export default function LeadsPanel() {
                         merchantOnline = sessionData.payload.list.some(
                             (session) => session.active === true
                         );
+
+                        davoContract = contractStatus;
                     } catch (ignore) {
                         // Keep defaults
+                    }
+                } else if (tin) {
+                    try {
+                        davoContract = await getDavoContractStatus(String(tin));
+                    } catch {
+                        // keep null
                     }
                 }
 
@@ -213,6 +226,7 @@ export default function LeadsPanel() {
                     brandedPacket: status.brandedPacket,
                     training: status.training,
                     merchantOnline: merchantOnline,
+                    davoContract,
                     creationDate: item.creationDate || new Date().toISOString(),
                     modifiedDate: item.modifiedDate || new Date().toISOString(),
                     comments: item.coments || item.comments || [],

@@ -109,6 +109,7 @@ export interface Pharmacy {
   brandedPacket?: boolean;
   merchantOnline?: boolean; // New field for merchant online status
   stir?: string;
+  davoContract?: DavoContractStatus | null;
   juridicalName?: string;
   juridicalAddress?: string;
   bankName?: string;
@@ -557,6 +558,52 @@ export async function saveUserColumnSettings(
   } catch (error) {
     console.warn("Error saving column settings:", error);
     return false;
+  }
+}
+
+// ============================================
+// DIDOX CONTRACT API
+// ============================================
+
+export interface DavoContractStatus {
+  tin: string;
+  doc_id: string | null;
+  doc_status: number | null;
+  contract_number: string | null;
+  status_comment: string | null;
+  status: "pending" | "signed" | "rejected" | "none";
+  label: string;
+  color: "amber" | "emerald" | "red" | "gray";
+}
+
+export interface DavoContractLinks {
+  doc_id: string | null;
+  downloadUrl: string | null;
+  copyUrl: string | null;
+}
+
+const CONTRACTS_API_BASE = (import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api")
+  .replace(/\/status$/, "");
+
+export async function getDavoContractStatus(tin: string): Promise<DavoContractStatus | null> {
+  if (!tin) return null;
+  try {
+    const res = await fetch(`${CONTRACTS_API_BASE}/contracts/${encodeURIComponent(tin)}`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getDavoContractLinks(tin: string): Promise<DavoContractLinks | null> {
+  if (!tin) return null;
+  try {
+    const res = await fetch(`${CONTRACTS_API_BASE}/contracts/${encodeURIComponent(tin)}/links`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
   }
 }
 
