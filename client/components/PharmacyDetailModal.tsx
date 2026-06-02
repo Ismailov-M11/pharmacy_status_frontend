@@ -41,7 +41,7 @@ interface PharmacyDetailModalProps {
   changeHistory?: StatusHistoryRecord[];
   onDeleteHistory?: (ids: number[]) => void;
   onUpdate?: () => void;
-  initialTab?: "details" | "files" | "leadHistory";
+  initialTab?: "details" | "files" | "leadHistory" | "contract";
 }
 
 export function PharmacyDetailModal({
@@ -211,7 +211,7 @@ export function PharmacyDetailModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto sm:w-full p-0 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden sm:w-full p-0 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         {/* Sticky header with tabs */}
         <div className="sticky top-0 bg-white dark:bg-gray-800 z-20 border-b dark:border-gray-700">
           <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2">

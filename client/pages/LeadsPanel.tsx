@@ -30,7 +30,7 @@ export default function LeadsPanel() {
     // Modal State
     const [selectedPharmacy, setSelectedPharmacy] = useState<Pharmacy | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [initialModalTab, setInitialModalTab] = useState<"details" | "files" | "leadHistory">("details");
+    const [initialModalTab, setInitialModalTab] = useState<"details" | "files" | "leadHistory" | "contract">("details");
 
     // Filters
     const [searchQuery, setSearchQuery] = useState("");
@@ -646,6 +646,11 @@ export default function LeadsPanel() {
                         onPharmacyClick={(pharmacy) => {
                             setSelectedPharmacy(pharmacy);
                             setInitialModalTab("details");
+                            setIsModalOpen(true);
+                        }}
+                        onContractClick={(pharmacy) => {
+                            setSelectedPharmacy(pharmacy);
+                            setInitialModalTab("contract");
                             setIsModalOpen(true);
                         }}
                         onLeadHistoryClick={(pharmacy) => {

@@ -32,6 +32,7 @@ interface PharmacyTableProps {
   searchQuery?: string;
   onSearchChange?: (value: string) => void;
   onPharmacyClick?: (pharmacy: Pharmacy) => void;
+  onContractClick?: (pharmacy: Pharmacy) => void;
 
   onRefresh?: () => void;
   leadStatusFilter?: string | null;
@@ -89,6 +90,7 @@ export function PharmacyTable({
   searchQuery = "",
   onSearchChange,
   onPharmacyClick,
+  onContractClick,
   onRefresh,
   leadStatusFilter,
   onLeadStatusFilterChange,
@@ -691,7 +693,7 @@ export function PharmacyTable({
         return (
           <td key={col.id} className="px-2 md:px-4 py-2 md:py-3 text-center">
             <button
-              onClick={() => onPharmacyClick?.(pharmacy)}
+              onClick={() => onContractClick?.(pharmacy)}
               className={`px-2 py-1 rounded text-xs font-bold inline-block whitespace-nowrap ${cls}`}
               title={c?.status_comment || undefined}
             >
