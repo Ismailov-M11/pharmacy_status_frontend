@@ -183,14 +183,19 @@ export default function LeadsPanel() {
 
             const batchResult = await getBatchPharmacyData(token!, batchItems);
 
+            const contractsByTin = batchResult._contractsByTin || {};
+
             // 3. Map and Merge Data
             const mappedLeads = rawLeads.map((item: any) => {
                 const marketMatch = marketMap.get(item.id);
-                const batch = batchResult[marketMatch?.id ?? 0] || {
+                const tin = item?.stir ? String(item.stir).replace(/\s+/g, "") : null;
+                const batchByMarket = marketMatch?.id ? batchResult[marketMatch.id] : null;
+                const batch = batchByMarket || {
                     training: false,
                     brandedPacket: false,
                     merchantOnline: false,
-                    davoContract: null,
+                    // для лидов без marketId ищем договор по TIN
+                    davoContract: tin ? (contractsByTin[tin] || null) : null,
                 };
 
                 const pharmacy: Pharmacy = {

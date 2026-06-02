@@ -577,10 +577,15 @@ export interface BatchPharmacyResult {
   davoContract: DavoContractStatus | null;
 }
 
+export interface BatchPharmacyResponse {
+  [marketId: number]: BatchPharmacyResult;
+  _contractsByTin?: Record<string, DavoContractStatus>;
+}
+
 export async function getBatchPharmacyData(
   token: string,
   items: BatchPharmacyItem[],
-): Promise<Record<number, BatchPharmacyResult>> {
+): Promise<BatchPharmacyResponse> {
   const base = (import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api")
     .replace(/\/status$/, "");
   try {
