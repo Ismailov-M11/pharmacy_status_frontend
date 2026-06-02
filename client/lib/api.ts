@@ -562,6 +562,44 @@ export async function saveUserColumnSettings(
 }
 
 // ============================================
+// BATCH API (single request for all per-pharmacy data)
+// ============================================
+
+export interface BatchPharmacyItem {
+  marketId: number | null;
+  tin: string | null;
+}
+
+export interface BatchPharmacyResult {
+  training: boolean;
+  brandedPacket: boolean;
+  merchantOnline: boolean;
+  davoContract: DavoContractStatus | null;
+}
+
+export async function getBatchPharmacyData(
+  token: string,
+  items: BatchPharmacyItem[],
+): Promise<Record<number, BatchPharmacyResult>> {
+  const base = (import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api")
+    .replace(/\/status$/, "");
+  try {
+    const res = await fetch(`${base}/batch/pharmacy-data`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ items }),
+    });
+    if (!res.ok) return {};
+    return res.json();
+  } catch {
+    return {};
+  }
+}
+
+// ============================================
 // DIDOX CONTRACT API
 // ============================================
 

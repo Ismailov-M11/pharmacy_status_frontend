@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { getLeadsList, getPharmacyList, getPharmacyStatus, Pharmacy, getUserColumnSettings, saveUserColumnSettings, ColumnSettings, updatePharmacyStatusLocal, getMarketSessionList, updateLeadStatus, getDavoContractStatus } from "@/lib/api";
+import { getLeadsList, getPharmacyList, Pharmacy, getUserColumnSettings, saveUserColumnSettings, ColumnSettings, updatePharmacyStatusLocal, updateLeadStatus, getBatchPharmacyData } from "@/lib/api";
 import { PharmacyTable } from "@/components/PharmacyTable";
 import { Header } from "@/components/Header";
 import { PharmacyDetailModal } from "@/components/PharmacyDetailModal";
@@ -172,48 +172,27 @@ export default function LeadsPanel() {
                 }
             });
 
-            // 2. Map and Merge Data
-            const mappedLeads = await Promise.all(rawLeads.map(async (item: any) => {
-                // Find corresponding pharmacy in market list using the Lead's ID
+            // 2. Single batch request: training + brandedPacket + merchantOnline + davoContract
+            const batchItems = rawLeads.map((item: any) => {
                 const marketMatch = marketMap.get(item.id);
+                return {
+                    marketId: marketMatch?.id ?? null,
+                    tin: item?.stir || marketMatch?.stir || null,
+                };
+            });
 
-                // Fetch Local Status (Packet/Training) and Session Data
-                let status = { brandedPacket: false, training: false };
-                let merchantOnline = false;
+            const batchResult = await getBatchPharmacyData(token!, batchItems);
 
-                let davoContract = null;
-                const tin = item?.stir || marketMatch?.stir || null;
+            // 3. Map and Merge Data
+            const mappedLeads = rawLeads.map((item: any) => {
+                const marketMatch = marketMap.get(item.id);
+                const batch = batchResult[marketMatch?.id ?? 0] || {
+                    training: false,
+                    brandedPacket: false,
+                    merchantOnline: false,
+                    davoContract: null,
+                };
 
-                if (marketMatch) {
-                    try {
-                        // Fetch status, session data, and contract status in parallel
-                        const [fetchedStatus, sessionData, contractStatus] = await Promise.all([
-                            getPharmacyStatus(marketMatch.id),
-                            getMarketSessionList(token, marketMatch.id),
-                            tin ? getDavoContractStatus(String(tin)) : Promise.resolve(null),
-                        ]);
-
-                        status.brandedPacket = fetchedStatus.brandedPacket;
-                        status.training = fetchedStatus.training;
-
-                        // Determine if pharmacy is online (any active session)
-                        merchantOnline = sessionData.payload.list.some(
-                            (session) => session.active === true
-                        );
-
-                        davoContract = contractStatus;
-                    } catch (ignore) {
-                        // Keep defaults
-                    }
-                } else if (tin) {
-                    try {
-                        davoContract = await getDavoContractStatus(String(tin));
-                    } catch {
-                        // keep null
-                    }
-                }
-
-                // Construct merged object
                 const pharmacy: Pharmacy = {
                     ...item,
                     id: item.id,
@@ -224,19 +203,18 @@ export default function LeadsPanel() {
                     active: marketMatch ? marketMatch.active : false,
                     lead: item,
                     marketChats: marketMatch ? marketMatch.marketChats : [],
-                    brandedPacket: status.brandedPacket,
-                    training: status.training,
-                    merchantOnline: merchantOnline,
-                    davoContract,
+                    brandedPacket: batch.brandedPacket,
+                    training: batch.training,
+                    merchantOnline: batch.merchantOnline,
+                    davoContract: batch.davoContract,
                     creationDate: item.creationDate || new Date().toISOString(),
                     modifiedDate: item.modifiedDate || new Date().toISOString(),
                     comments: item.coments || item.comments || [],
-                    // Store Market M-code if this lead has been converted
                     ...(marketMatch ? { marketCode: marketMatch.code } : {}),
                 } as any;
 
                 return pharmacy;
-            }));
+            });
 
             setLeads(mappedLeads);
             // filteredLeads will be updated by the filter useEffect
