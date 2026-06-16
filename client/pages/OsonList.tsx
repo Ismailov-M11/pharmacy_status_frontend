@@ -46,7 +46,8 @@ import {
   BadgeCheck,
   Navigation,
   Download,
-  FilterX
+  FilterX,
+  Sparkles,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
@@ -80,6 +81,7 @@ function getStatusLabel(status: OsonStatus, lang: string): string {
     connected: { ru: "Подключён", uz: "Ulangan" },
     not_connected: { ru: "Не подключён", uz: "Ulanmagan" },
     deleted: { ru: "Удалён", uz: "O'chirilgan" },
+    new: { ru: "Новый", uz: "Yangi" },
   };
   return labels[status]?.[lang] || labels[status]?.["ru"] || status;
 }
@@ -92,6 +94,8 @@ function getStatusColor(status: OsonStatus): string {
       return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400";
     case "deleted":
       return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+    case "new":
+      return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
     default:
       return "bg-gray-100 text-gray-800";
   }
@@ -105,8 +109,11 @@ function getStatusIcon(status: OsonStatus) {
       return <AlertCircle className="h-3 w-3" />;
     case "deleted":
       return <XCircle className="h-3 w-3" />;
+    case "new":
+      return <Sparkles className="h-3 w-3" />;
   }
 }
+
 
 function getMarkerColor(status: OsonStatus): string {
   switch (status) {
@@ -183,6 +190,7 @@ export default function OsonList() {
     connected: 0,
     not_connected: 0,
     deleted: 0,
+    new: 0,
     lastSyncedAt: null,
   });
   const [syncStatus, setSyncStatus] = useState<OsonSyncStatus>({
@@ -430,7 +438,6 @@ export default function OsonList() {
     }
   };
 
-  // Status filter is now applied on the backend; pharmacies array already reflects it.
   const filteredPharmacies = pharmacies;
 
   // ─── Map markers ───────────────────────────────────────────────────────────────────
@@ -592,6 +599,7 @@ export default function OsonList() {
             <StatsCard label="Подключён" value={stats.connected} color="green" onClick={() => toggleStatusFilter("connected")} active={isStatusActive("connected")} />
             <StatsCard label="Не подключён" value={stats.not_connected} color="amber" onClick={() => toggleStatusFilter("not_connected")} active={isStatusActive("not_connected")} />
             <StatsCard label="Удалён" value={stats.deleted} color="red" onClick={() => toggleStatusFilter("deleted")} active={isStatusActive("deleted")} />
+            <StatsCard label="Новый" value={stats.new || 0} color="blue" onClick={() => toggleStatusFilter("new")} active={isStatusActive("new")} />
           </div>
 
           {activeTab === "list" && (
@@ -681,19 +689,21 @@ export default function OsonList() {
 // ─── Stats Card ──────────────────────────────────────────────────────────────────────────────
 
 function StatsCard({ label, value, color, onClick, active }: {
-  label: string; value: number; color: "gray" | "green" | "amber" | "red"; onClick: () => void; active: boolean;
+  label: string; value: number; color: "gray" | "green" | "amber" | "red" | "blue"; onClick: () => void; active: boolean;
 }) {
   const colorMap = {
     gray: active ? "bg-gray-200 dark:bg-gray-600 border-gray-400" : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
     green: active ? "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-400" : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
     amber: active ? "bg-amber-100 dark:bg-amber-900/40 border-amber-400" : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
     red: active ? "bg-red-100 dark:bg-red-900/40 border-red-400" : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+    blue: active ? "bg-blue-100 dark:bg-blue-900/40 border-blue-400" : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
   };
   const valueColorMap = {
     gray: "text-gray-700 dark:text-gray-200",
     green: "text-emerald-700 dark:text-emerald-400",
     amber: "text-amber-700 dark:text-amber-400",
     red: "text-red-700 dark:text-red-400",
+    blue: "text-blue-700 dark:text-blue-400",
   };
   return (
     <button onClick={onClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm cursor-pointer transition-all hover:shadow-sm ${colorMap[color]}`}>
@@ -873,6 +883,7 @@ function ListTab({ pharmacies, isLoading, language, pageSize, onPageSizeChange, 
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />Подключён</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />Не подключён</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" />Удалён</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />Новый</span>
           </div>
           {totalPages > 1 && (
             <div className="flex items-center gap-1">

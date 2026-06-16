@@ -1,6 +1,6 @@
 // ─── Types ────────────────────────────────────────────────────────────────────────────
 
-export type OsonStatus = "connected" | "not_connected" | "deleted";
+export type OsonStatus = "connected" | "not_connected" | "deleted" | "new";
 
 export interface OsonPharmacy {
   id: number;
@@ -35,6 +35,7 @@ export interface OsonStats {
   connected: number;
   not_connected: number;
   deleted: number;
+  new: number;
   lastSyncedAt: string | null;
 }
 
