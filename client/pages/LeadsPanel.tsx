@@ -346,7 +346,7 @@ export default function LeadsPanel() {
         };
 
         const headers = [
-            '№', 'Код', 'Название аптеки', 'Адрес', 'Ориентир',
+            '№', 'Код', 'Slug', 'Название аптеки', 'Адрес', 'Ориентир',
             'Телефон аптеки', 'Телефон Lead', 'Merchant статус', 'Telegram Bot',
             'Обучение', 'Пакет', 'Статус', 'Lead Статус',
             'Последний комментарий', 'Автор комментария', 'Дата комментария',
@@ -371,6 +371,7 @@ export default function LeadsPanel() {
             return [
                 i + 1,
                 (p as any).marketCode || p.code,
+                p.slug || '',
                 p.name,
                 p.address,
                 p.landmark || '',

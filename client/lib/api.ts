@@ -108,6 +108,7 @@ export interface Pharmacy {
   training?: boolean;
   brandedPacket?: boolean;
   merchantOnline?: boolean; // New field for merchant online status
+  slug?: string;
   stir?: string;
   davoContract?: DavoContractStatus | null;
   juridicalName?: string;
