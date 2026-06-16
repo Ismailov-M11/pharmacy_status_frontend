@@ -613,6 +613,20 @@ export default function OsonList() {
                   className="pl-8 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 dark:text-gray-100"
                 />
               </div>
+              <div className="w-48 shrink-0">
+                <MultiSelectDropdown
+                  label="Статус"
+                  options={[
+                    { value: "connected", label: "Подключён" },
+                    { value: "not_connected", label: "Не подключён" },
+                    { value: "new", label: "Новый" },
+                    { value: "deleted", label: "Удалён" },
+                  ]}
+                  selectedValues={filterStatus.filter(s => s !== "all") as string[]}
+                  onChange={(v) => setFilterStatus(v as (OsonStatus | "all")[])}
+                  alignRight={false}
+                />
+              </div>
               <div className="w-56 shrink-0">
                 <MultiSelectDropdown
                   label="Выберите города"
