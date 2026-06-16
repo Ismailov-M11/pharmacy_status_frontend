@@ -357,7 +357,7 @@ export default function LeadsPanel() {
 
         const downloadSource = selectedRows.size > 0
             ? leads.filter(p => selectedRows.has(p.id))
-            : filteredLeads;
+            : leads;
 
         const rows = downloadSource.map((p, i) => {
             const lastComment = getLastCommentLocal(p.comments || []);

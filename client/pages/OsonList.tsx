@@ -402,17 +402,32 @@ export default function OsonList() {
 
   // ─── Download Excel ─────────────────────────────────────────────────────────────────
 
-  const handleDownloadExcel = () => {
-    if (filteredPharmacies.length === 0) {
-      toast.error("Нет данных для скачивания");
-      return;
+  const handleDownloadExcel = async () => {
+    if (!token) return;
+    try {
+      toast.info("Подготовка файла...");
+      const statusFilter =
+        filterStatus.length > 0 && !filterStatus.includes("all") ? filterStatus : undefined;
+      const allData = await getOsonPharmacies(token, {
+        status: statusFilter,
+        parentRegion: filterParentRegion.length > 0 ? filterParentRegion : undefined,
+        region: filterRegion.length > 0 ? filterRegion : undefined,
+        search: searchQuery || undefined,
+        size: 0,
+      });
+      if (!allData.data.length) {
+        toast.error("Нет данных для скачивания");
+        return;
+      }
+      const dataToExport = allData.data.map((p, index) => ({ ...p, "№_пп": index + 1 }));
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Аптеки");
+      XLSX.writeFile(workbook, `OSON_Pharmacies_${new Date().toISOString().split('T')[0]}.xlsx`);
+      toast.success("Файл успешно скачан");
+    } catch {
+      toast.error("Ошибка при скачивании");
     }
-    const dataToExport = filteredPharmacies.map((p, index) => ({ ...p, "№_пп": index + 1 }));
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Аптеки");
-    XLSX.writeFile(workbook, `OSON_Pharmacies_${new Date().toISOString().split('T')[0]}.xlsx`);
-    toast.success("Файл успешно скачан");
   };
 
   // Status filter is now applied on the backend; pharmacies array already reflects it.
