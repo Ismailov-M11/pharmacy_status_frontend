@@ -451,11 +451,13 @@ export default function OsonList() {
     );
     const collection = new window.ymaps.GeoObjectCollection();
     visiblePharmacies.forEach((pharmacy) => {
-      if (!pharmacy.latitude || !pharmacy.longitude) return;
+      const lat = parseFloat(pharmacy.latitude as unknown as string);
+      const lon = parseFloat(pharmacy.longitude as unknown as string);
+      if (!lat || !lon || isNaN(lat) || isNaN(lon)) return;
       const statusLabel = getStatusLabel(pharmacy.oson_status, language);
       const statusColor = pharmacy.oson_status === "connected" ? "#10b981" : "#f59e0b";
       const placemark = new window.ymaps.Placemark(
-        [pharmacy.latitude, pharmacy.longitude],
+        [lat, lon],
         {
           balloonContent: `
             <div style="padding: 12px; font-family: Arial, sans-serif; max-width: 300px;">
