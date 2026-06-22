@@ -65,74 +65,73 @@ function MapTab({ cart }: { cart: UserCart }) {
         let cancelled = false;
         let mapInstance: any = null;
 
-        ymaps.ready(() => {
-            if (cancelled || !el) return;
+        // Wait for dialog animation so container has real pixel dimensions
+        const initTimer = setTimeout(() => {
+            ymaps.ready(() => {
+                if (cancelled || !el) return;
 
-            const defaultCenter: [number, number] = hasMarket
-                ? [cart.market_latitude!, cart.market_longitude!]
-                : [cart.latitude!, cart.longitude!];
+                const defaultCenter: [number, number] = hasMarket
+                    ? [cart.market_latitude!, cart.market_longitude!]
+                    : [cart.latitude!, cart.longitude!];
 
-            mapInstance = new ymaps.Map(el, {
-                center: defaultCenter,
-                zoom: 13,
-                controls: ["zoomControl"],
-            }, { suppressMapOpenBlock: true });
+                mapInstance = new ymaps.Map(el, {
+                    center: defaultCenter,
+                    zoom: 13,
+                    controls: ["zoomControl"],
+                }, { suppressMapOpenBlock: true });
 
-            // Pharmacy marker — blue
-            if (hasMarket) {
-                mapInstance.geoObjects.add(new ymaps.Placemark(
-                    [cart.market_latitude!, cart.market_longitude!],
-                    {},
-                    { preset: "islands#blueCircleDotIcon" }
-                ));
-            }
+                mapInstance.container.fitToViewport();
 
-            // Client marker — red
-            if (hasClient) {
-                mapInstance.geoObjects.add(new ymaps.Placemark(
-                    [cart.latitude!, cart.longitude!],
-                    {},
-                    { preset: "islands#redCircleDotIcon" }
-                ));
-            }
+                if (hasMarket) {
+                    mapInstance.geoObjects.add(new ymaps.Placemark(
+                        [cart.market_latitude!, cart.market_longitude!],
+                        {},
+                        { preset: "islands#blueCircleDotIcon" }
+                    ));
+                }
 
-            if (hasClient && hasMarket) {
-                ymaps.route(
-                    [[cart.market_latitude!, cart.market_longitude!], [cart.latitude!, cart.longitude!]],
-                    { mapStateAutoApply: false, routingMode: "auto" }
-                ).then((route: any) => {
-                    if (cancelled) return;
-                    // Style: single purple line, no popups
-                    route.getPaths().options.set({
-                        strokeColor: "6366f1",
-                        strokeWidth: 4,
-                        opacity: 0.8,
-                        openBalloonOnClick: false,
+                if (hasClient) {
+                    mapInstance.geoObjects.add(new ymaps.Placemark(
+                        [cart.latitude!, cart.longitude!],
+                        {},
+                        { preset: "islands#redCircleDotIcon" }
+                    ));
+                }
+
+                if (hasClient && hasMarket) {
+                    ymaps.route(
+                        [[cart.market_latitude!, cart.market_longitude!], [cart.latitude!, cart.longitude!]],
+                        { mapStateAutoApply: false, routingMode: "auto" }
+                    ).then((route: any) => {
+                        if (cancelled || !mapInstance) return;
+                        route.getPaths().options.set({
+                            strokeColor: "6366f1",
+                            strokeWidth: 4,
+                            opacity: 0.8,
+                            openBalloonOnClick: false,
+                        });
+                        route.getWayPoints().options.set("visible", false);
+                        mapInstance.geoObjects.add(route);
+                        const bounds = route.getBounds();
+                        if (bounds) mapInstance.setBounds(bounds, { checkZoomRange: true, zoomMargin: 50 });
+                    }).catch(() => {
+                        const bounds = mapInstance?.geoObjects.getBounds();
+                        if (bounds) mapInstance.setBounds(bounds, { checkZoomRange: true, zoomMargin: 60 });
                     });
-                    // Hide route's own waypoint markers (we already have our own)
-                    route.getWayPoints().options.set("visible", false);
-
-                    mapInstance.geoObjects.add(route);
-
-                    const bounds = route.getBounds();
-                    if (bounds) mapInstance.setBounds(bounds, { checkZoomRange: true, zoomMargin: 50 });
-                }).catch(() => {
-                    // Route failed — just fit to both markers
-                    const bounds = mapInstance.geoObjects.getBounds();
-                    if (bounds) mapInstance.setBounds(bounds, { checkZoomRange: true, zoomMargin: 60 });
-                });
-            } else {
-                setTimeout(() => {
-                    if (!cancelled && mapInstance) {
-                        const bounds = mapInstance.geoObjects.getBounds();
-                        if (bounds) mapInstance.setBounds(bounds, { checkZoomRange: true, zoomMargin: 80 });
-                    }
-                }, 150);
-            }
-        });
+                } else {
+                    setTimeout(() => {
+                        if (!cancelled && mapInstance) {
+                            const bounds = mapInstance.geoObjects.getBounds();
+                            if (bounds) mapInstance.setBounds(bounds, { checkZoomRange: true, zoomMargin: 80 });
+                        }
+                    }, 150);
+                }
+            });
+        }, 300);
 
         return () => {
             cancelled = true;
+            clearTimeout(initTimer);
             if (mapInstance) { try { mapInstance.destroy(); } catch (_) {} }
         };
     }, [cart.id]); // eslint-disable-line react-hooks/exhaustive-deps
