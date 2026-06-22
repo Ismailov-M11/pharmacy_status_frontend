@@ -112,6 +112,15 @@ function MapTab({ cart }: { cart: UserCart }) {
             setTimeout(() => {
                 if (mapRef.current) mapRef.current.container.fitToViewport();
             }, 200);
+
+            // Fix: fullscreen changes container size → recalc event coords
+            const onFullscreen = () => {
+                setTimeout(() => {
+                    if (mapRef.current) mapRef.current.container.fitToViewport();
+                }, 50);
+            };
+            document.addEventListener("fullscreenchange", onFullscreen);
+            (mapRef.current as any)._fullscreenListener = onFullscreen;
         } catch (err) {
             console.error("MapTab init error:", err);
         }
@@ -137,7 +146,12 @@ function MapTab({ cart }: { cart: UserCart }) {
         document.head.appendChild(script);
 
         return () => {
-            if (mapRef.current) { try { mapRef.current.destroy(); } catch (_) {} mapRef.current = null; }
+            if (mapRef.current) {
+                const listener = (mapRef.current as any)._fullscreenListener;
+                if (listener) document.removeEventListener("fullscreenchange", listener);
+                try { mapRef.current.destroy(); } catch (_) {}
+                mapRef.current = null;
+            }
             initializedRef.current = false;
         };
     }, [cart.id]); // eslint-disable-line react-hooks/exhaustive-deps
