@@ -62,43 +62,45 @@ function MapTab({ cart }: { cart: UserCart }) {
         );
     }
 
-    // Center: midpoint or single point
-    const centerLat = hasClient && hasMarket
-        ? ((cart.latitude! + cart.market_latitude!) / 2)
-        : (cart.latitude ?? cart.market_latitude)!;
-    const centerLon = hasClient && hasMarket
-        ? ((cart.longitude! + cart.market_longitude!) / 2)
-        : (cart.longitude ?? cart.market_longitude)!;
+    const clientLabel = [cart.customer_first_name, cart.customer_last_name].filter(Boolean).join(" ") || cart.customer_phone || "Клиент";
+    const marketLabel = cart.market_name || "Аптека";
 
-    // Yandex Maps: pt format is lon,lat,style
-    const pts: string[] = [];
-    if (hasClient)  pts.push(`${cart.longitude},${cart.latitude},pm2rdm`);   // red = client
-    if (hasMarket)  pts.push(`${cart.market_longitude},${cart.market_latitude},pm2blm`); // blue = pharmacy
-
-    const mapUrl = `https://yandex.ru/map-widget/v1/?ll=${centerLon},${centerLat}&z=14&pt=${pts.join("~")}`;
+    // Route from pharmacy → client (rtext uses lat,lon format)
+    // Auto-fits view to show entire route
+    let mapUrl: string;
+    if (hasClient && hasMarket) {
+        mapUrl = `https://yandex.ru/map-widget/v1/?rtt=auto&rtext=${cart.market_latitude},${cart.market_longitude}~${cart.latitude},${cart.longitude}&mode=routes`;
+    } else if (hasMarket) {
+        mapUrl = `https://yandex.ru/map-widget/v1/?ll=${cart.market_longitude},${cart.market_latitude}&z=15&pt=${cart.market_longitude},${cart.market_latitude},pm2blm`;
+    } else {
+        mapUrl = `https://yandex.ru/map-widget/v1/?ll=${cart.longitude},${cart.latitude}&z=15&pt=${cart.longitude},${cart.latitude},pm2rdm`;
+    }
 
     return (
-        <div className="space-y-3">
-            <div className="flex items-center gap-4 text-xs">
-                {hasClient && (
-                    <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-full bg-red-500 inline-block" />
-                        Клиент ({cart.latitude?.toFixed(5)}, {cart.longitude?.toFixed(5)})
+        <div className="space-y-2">
+            {/* Legend — only names, no coordinates */}
+            <div className="flex items-center gap-5 text-sm px-1">
+                {hasMarket && (
+                    <span className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                        <span className="w-3 h-3 rounded-full bg-blue-500 shrink-0" />
+                        <span className="font-medium truncate max-w-[200px]">{marketLabel}</span>
+                        <span className="text-xs text-gray-400">(аптека)</span>
                     </span>
                 )}
-                {hasMarket && (
-                    <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-full bg-blue-500 inline-block" />
-                        Аптека ({cart.market_latitude?.toFixed(5)}, {cart.market_longitude?.toFixed(5)})
+                {hasClient && (
+                    <span className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                        <span className="w-3 h-3 rounded-full bg-red-500 shrink-0" />
+                        <span className="font-medium truncate max-w-[200px]">{clientLabel}</span>
+                        <span className="text-xs text-gray-400">(клиент)</span>
                     </span>
                 )}
             </div>
             <iframe
                 src={mapUrl}
                 className="w-full rounded-lg border border-gray-200 dark:border-gray-700"
-                style={{ height: 380 }}
+                style={{ height: 400 }}
                 allowFullScreen
-                title="Карта"
+                title="Маршрут"
             />
         </div>
     );
