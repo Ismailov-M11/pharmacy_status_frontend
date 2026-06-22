@@ -626,6 +626,9 @@ export default function UserCarts() {
                                                         <button onClick={() => openCart(cart, "cart")} className="font-medium text-purple-700 dark:text-purple-400 hover:underline whitespace-nowrap">
                                                             #{cart.id}
                                                         </button>
+                                                        {cart.order_code && (
+                                                            <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{cart.order_code}</div>
+                                                        )}
                                                     </td>
                                                     <td className="py-3 px-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                                                         {format(new Date(cart.creation_date), "dd.MM.yyyy HH:mm")}

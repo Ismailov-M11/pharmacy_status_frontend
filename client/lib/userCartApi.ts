@@ -60,6 +60,7 @@ export interface UserCart {
   last_synced_at: string | null;
   order_status: "pending" | "in_progress" | "delivered" | "cancelled" | "deleted";
   order_status_synced_at: string | null;
+  order_code: string | null;
 }
 
 export interface CartFilters {

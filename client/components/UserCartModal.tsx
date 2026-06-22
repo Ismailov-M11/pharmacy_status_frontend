@@ -512,6 +512,9 @@ export function UserCartModal({ cart, isOpen, onClose, initialTab = "cart", t }:
                     <DialogTitle className="flex items-center gap-3 text-lg font-bold text-gray-900 dark:text-gray-100">
                         <ShoppingCart className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                         {t.userCarts} #{cart.id}
+                        {cart.order_code && (
+                            <span className="text-sm font-medium text-gray-400 dark:text-gray-500">· {cart.order_code}</span>
+                        )}
                         {(() => {
                             const s = statuses.find((x: CartStatus) => x.value === cart.cart_status);
                             return (
