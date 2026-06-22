@@ -68,7 +68,8 @@ function MapTab({ cart }: { cart: UserCart }) {
                 center: defaultCenter,
                 zoom: 13,
                 controls: ["zoomControl", "fullscreenControl"],
-            }, { suppressMapOpenBlock: true });
+                behaviors: ["default", "scrollZoom"],
+            });
             initializedRef.current = true;
 
             if (hasMarket) {
@@ -322,9 +323,15 @@ export function UserCartModal({ cart, isOpen, onClose, initialTab = "cart", t }:
             <DialogContent
                 className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0"
                 onInteractOutside={(e: Event) => {
-                    // Yandex Maps fullscreen inserts <ymaps> directly into <body> outside Dialog DOM.
-                    // Radix treats clicks on it as "outside" and would close dialog — prevent that.
-                    const target = e.target as Element;
+                    // When ymaps enters fullscreen it adds "ymaps-*-fullscreen" class to <body>
+                    // and appends <ymaps> outside Dialog DOM — Radix closes dialog on any click.
+                    // Prevent closing while ymaps fullscreen is active.
+                    const isYmapsFullscreen = Array.from(document.body.classList).some(
+                        (cls) => cls.startsWith("ymaps-") && cls.endsWith("-fullscreen")
+                    );
+                    if (isYmapsFullscreen) { e.preventDefault(); return; }
+
+                    const target = (e as any).detail?.originalEvent?.target as Element ?? e.target as Element;
                     if (target?.tagName?.toLowerCase() === "ymaps" || target?.closest?.("ymaps")) {
                         e.preventDefault();
                     }
