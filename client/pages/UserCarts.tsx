@@ -351,6 +351,15 @@ export default function UserCarts() {
     const stats = syncStatus?.stats;
     const lastSync = syncStatus?.lastSyncAt || stats?.lastSyncedAt;
 
+    const totalSum = useMemo(
+        () => allCarts.reduce((sum, c) => sum + (c.invoice_total || 0), 0),
+        [allCarts]
+    );
+    const unprocessedSum = useMemo(
+        () => allCarts.filter((c) => c.cart_status === "unprocessed").reduce((sum, c) => sum + (c.invoice_total || 0), 0),
+        [allCarts]
+    );
+
     if (authLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -366,8 +375,8 @@ export default function UserCarts() {
             <main className="w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
                 {/* Page header */}
-                <div className="flex items-start justify-between mb-4 gap-4">
-                    <div>
+                <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
+                    <div className="shrink-0">
                         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t.userCarts}</h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                             {isSyncing || syncStatus?.isSyncing ? (
@@ -382,6 +391,26 @@ export default function UserCarts() {
                             )}
                         </p>
                     </div>
+
+                    {/* Total sum highlight */}
+                    {allCarts.length > 0 && (
+                        <div className="flex-1 flex justify-center">
+                            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-xl px-8 py-3 text-center min-w-0">
+                                <p className="text-xs font-semibold uppercase tracking-widest text-purple-500 dark:text-purple-400 mb-1">
+                                    Общая сумма корзин
+                                </p>
+                                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300 whitespace-nowrap">
+                                    {formatSum(totalSum)} {t.sum}
+                                </p>
+                                {unprocessedSum > 0 && (
+                                    <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1 whitespace-nowrap">
+                                        Не обработано: <span className="font-semibold">{formatSum(unprocessedSum)} {t.sum}</span>
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="flex items-center gap-2 shrink-0">
                         {stats && (
                             <div className="hidden sm:flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mr-1">
