@@ -232,6 +232,14 @@ export function statusBadgeClasses(color: string): string {
     return (COLOR_MAP[color] ?? COLOR_MAP.gray).badge;
 }
 
+// ─── Order status badge config (mirrors UserCarts.tsx) ─────────────────────────
+const ORDER_STATUS_BADGE: Record<string, { label: string; cls: string }> = {
+    in_progress: { label: "Доставляется", cls: "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300" },
+    delivered:   { label: "Доставлен",    cls: "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300" },
+    cancelled:   { label: "Отменён",      cls: "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300" },
+    deleted:     { label: "Удалён",       cls: "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400" },
+};
+
 // ─── Comments tab ─────────────────────────────────────────────────────────────
 const ORDER_STATUS_LOCK: Record<string, { label: string; cls: string }> = {
     in_progress: { label: "Заказ доставляется — обновление статуса недоступно",        cls: "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300" },
@@ -509,6 +517,16 @@ export function UserCartModal({ cart, isOpen, onClose, initialTab = "cart", t }:
                             <span className="text-sm font-medium text-gray-400 dark:text-gray-500">· {cart.order_code}</span>
                         )}
                         {(() => {
+                            const orderBadge = cart.order_status && cart.order_status !== "pending"
+                                ? ORDER_STATUS_BADGE[cart.order_status]
+                                : null;
+                            if (orderBadge) {
+                                return (
+                                    <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-normal ${orderBadge.cls}`}>
+                                        {orderBadge.label}
+                                    </span>
+                                );
+                            }
                             const s = statuses.find((x: CartStatus) => x.value === cart.cart_status);
                             return (
                                 <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-normal ${statusBadgeClasses(s?.color ?? "gray")}`}>

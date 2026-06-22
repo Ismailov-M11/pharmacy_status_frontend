@@ -784,18 +784,35 @@ export default function UserCarts() {
                                 </div>
                                 <div>
                                     <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{t.cartStatus}</label>
-                                    <select value={pendingFilters.status} onChange={(e) => setPendingFilters((f) => ({ ...f, status: e.target.value }))}
-                                        className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400">
+                                    <select
+                                        value={pendingFilters.orderStatus ? `__order__${pendingFilters.orderStatus}` : pendingFilters.status}
+                                        onChange={(e) => {
+                                            const v = e.target.value;
+                                            if (v.startsWith("__order__")) {
+                                                setPendingFilters((f) => ({ ...f, status: "all", orderStatus: v.replace("__order__", "") }));
+                                            } else {
+                                                setPendingFilters((f) => ({ ...f, status: v, orderStatus: "" }));
+                                            }
+                                        }}
+                                        className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
+                                    >
                                         <option value="all">{t.allStatuses}</option>
-                                        {cartStatuses.map((s) => (
-                                            <option key={s.value} value={s.value}>{s.label}</option>
-                                        ))}
+                                        <optgroup label="── Операторские ──">
+                                            {cartStatuses.map((s) => (
+                                                <option key={s.value} value={s.value}>{s.label}</option>
+                                            ))}
+                                        </optgroup>
+                                        <optgroup label="── Статус заказа ──">
+                                            {Object.entries(ORDER_STATUS_CONFIG).filter(([v]) => v !== "pending").map(([value, cfg]) => (
+                                                <option key={value} value={`__order__${value}`}>{cfg.label}</option>
+                                            ))}
+                                        </optgroup>
                                     </select>
                                 </div>
                             </div>
-                            <div className="flex flex-col">
-                                <FilterSection title={t.pharmacyName || "Аптека"} grow>
-                                    <CheckList options={allPharmacies} selected={pendingFilters.pharmacies} onChange={(v) => setPendingFilters((f) => ({ ...f, pharmacies: v }))} searchable grow />
+                            <div>
+                                <FilterSection title={t.pharmacyName || "Аптека"}>
+                                    <CheckList options={allPharmacies} selected={pendingFilters.pharmacies} onChange={(v) => setPendingFilters((f) => ({ ...f, pharmacies: v }))} searchable />
                                 </FilterSection>
                             </div>
                             <div className="space-y-5">
@@ -831,26 +848,6 @@ export default function UserCarts() {
                                         searchable
                                     />
                                 </FilterSection>
-                            </div>
-                        </div>
-
-                        {/* ─── Order status filter ────────────────────────── */}
-                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
-                            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 px-1">Статус заказа</p>
-                            <div className="flex flex-wrap gap-2">
-                                {Object.entries(ORDER_STATUS_CONFIG).map(([value, cfg]) => (
-                                    <button
-                                        key={value}
-                                        onClick={() => setPendingFilters((f) => ({ ...f, orderStatus: f.orderStatus === value ? "" : value }))}
-                                        className={`text-xs px-3 py-1 rounded-full border transition-colors ${
-                                            pendingFilters.orderStatus === value
-                                                ? "border-purple-500 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300"
-                                                : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-purple-300"
-                                        }`}
-                                    >
-                                        {cfg.label}
-                                    </button>
-                                ))}
                             </div>
                         </div>
 
