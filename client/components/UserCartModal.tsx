@@ -346,27 +346,35 @@ function CommentsTab({ cart, token, username, statuses, isAdmin, onStatusCreated
                             ? statuses.find((x: CartStatus) => x.value === c.status)
                             : null;
                         const isSystem = c.created_by === "system";
+                        const badgeLabel = orderBadge?.label ?? operatorStatus?.label;
+                        const badgeCls = orderBadge?.cls ?? (operatorStatus ? statusBadgeClasses(operatorStatus.color) : "");
                         return (
-                            <div key={c.id} className={`rounded-xl px-4 py-3 border ${isSystem ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30" : "bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700"}`}>
-                                {orderBadge && (
-                                    <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full mb-2 ${orderBadge.cls}`}>
-                                        {orderBadge.label}
+                            <div key={c.id} className="py-2.5 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                                <div className="flex items-center gap-3">
+                                    {/* Date */}
+                                    <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 w-32">
+                                        {format(new Date(c.created_at), "dd.MM.yyyy HH:mm")}
                                     </span>
-                                )}
-                                {operatorStatus && (
-                                    <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full mb-2 ${statusBadgeClasses(operatorStatus.color)}`}>
-                                        {operatorStatus.label}
-                                    </span>
-                                )}
-                                {c.text && <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">{c.text}</p>}
-                                <div className="flex items-center gap-2 mt-2 text-xs text-gray-400 dark:text-gray-500">
-                                    <User className="h-3 w-3 shrink-0" />
-                                    <span className="font-medium text-gray-500 dark:text-gray-400">
+                                    {/* Status badge */}
+                                    <div className="flex-1">
+                                        {badgeLabel ? (
+                                            <span className={`inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full ${badgeCls}`}>
+                                                {badgeLabel}
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
+                                        )}
+                                    </div>
+                                    {/* Author */}
+                                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0 text-right">
                                         {isSystem ? "Синхронизация" : c.created_by}
                                     </span>
-                                    <span>·</span>
-                                    <span>{format(new Date(c.created_at), "dd.MM.yyyy HH:mm")}</span>
                                 </div>
+                                {c.text && (
+                                    <p className="mt-1.5 ml-[140px] text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                                        {c.text}
+                                    </p>
+                                )}
                             </div>
                         );
                     })

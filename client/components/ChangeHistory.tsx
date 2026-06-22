@@ -69,98 +69,69 @@ export function ChangeHistory({ records, onDelete, isAdmin = false }: ChangeHist
   };
 
   return (
-    <div className="relative">
+    <div>
       {/* Action buttons - shown when items are selected */}
       {isAdmin && selectedIds.length > 0 && (
-        <div className="flex gap-2 mb-4 justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleClearSelection}
-            className="gap-2"
-          >
+        <div className="flex gap-2 mb-3 justify-end">
+          <Button variant="outline" size="sm" onClick={handleClearSelection} className="gap-2">
             {t.clear || "Очистить"}
           </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleDeleteClick}
-            className="gap-2"
-          >
+          <Button variant="destructive" size="sm" onClick={handleDeleteClick} className="gap-2">
             <Trash2 className="h-4 w-4" />
             {t.deleteSelected || "Удалить выбранные"} ({selectedIds.length})
           </Button>
         </div>
       )}
 
-      {/* Vertical timeline line */}
-      <div className="absolute left-[15px] top-0 bottom-0 w-0.5 bg-blue-200" />
-
-      <div className="space-y-0">
+      <div>
         {records
-          .sort(
-            (a, b) =>
-              new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime(),
-          )
-          .map((record, index) => (
-            <div
-              key={record.id}
-              className="relative pl-10 pb-6 last:pb-0"
-            >
-              {/* Timeline dot */}
-              <div className="absolute left-[11px] top-[6px] w-2 h-2 rounded-full bg-blue-500 ring-4 ring-white" />
+          .sort((a, b) => new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime())
+          .map((record) => {
+            const fieldLabel = record.field === "training"
+              ? (t.training || "Обучение")
+              : (t.brandedPacket || "Брендированный пакет");
+            const valueLabel = record.new_value
+              ? (record.field === "training" ? (t.yesTraining || "ДА") : (t.yes || "ДА"))
+              : (record.field === "training" ? (t.noTraining || "НЕТ") : (t.no || "НЕТ"));
+            const badgeCls = record.new_value
+              ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
+              : "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300";
 
-              {/* Content */}
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-start gap-2 flex-1 min-w-0">
-                  {/* Checkbox for admin */}
+            return (
+              <div key={record.id} className="py-2.5 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                <div className="flex items-center gap-3">
                   {isAdmin && (
                     <input
                       type="checkbox"
                       checked={selectedIds.includes(record.id)}
                       onChange={() => handleCheckboxChange(record.id)}
-                      className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0"
+                      className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 text-blue-600 cursor-pointer"
                     />
                   )}
-
-                  <div className="flex-1 min-w-0">
-                    {/* Date and time */}
-                    <div className="text-sm text-gray-500 mb-1">
-                      {format(new Date(record.changed_at), "yyyy", { locale: dateLocale })} {t.year || "год"} {format(new Date(record.changed_at), "dd MMMM HH:mm", { locale: dateLocale })}
-                    </div>
-
-                    {/* Status change description */}
-                    <div className="text-sm text-gray-700">
-                      <span className="font-medium">
-                        {record.field === "training"
-                          ? t.training || "Training"
-                          : t.brandedPacket || "Branded Packet"}
-                      </span>
-                      {" "}
-                      <span className="text-gray-500">{t.changedTo || "changed to"}</span>
-                      {" "}
-                      <span className={`font-semibold ${record.new_value ? "text-green-700" : "text-orange-700"}`}>
-                        {record.field === "training"
-                          ? (record.new_value ? (t.yesTraining || "YES") : (t.noTraining || "NO"))
-                          : (record.new_value ? (t.yes || "YES") : (t.no || "NO"))}
-                      </span>
-                      {" "}
-                      <span className="text-gray-500">{t.by || "by"}</span>
-                      {" "}
-                      <span className="font-medium text-gray-900">{record.changed_by}</span>
-                    </div>
-
-                    {/* Comment */}
-                    {record.comment && (
-                      <div className="mt-2 text-sm text-gray-600 bg-gray-50 rounded px-3 py-2 border border-gray-200">
-                        {record.comment}
-                      </div>
-                    )}
+                  {/* Date */}
+                  <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 w-32">
+                    {format(new Date(record.changed_at), "dd.MM.yyyy HH:mm")}
+                  </span>
+                  {/* Status badge */}
+                  <div className="flex-1 flex items-center gap-1.5">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{fieldLabel}:</span>
+                    <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${badgeCls}`}>
+                      {valueLabel}
+                    </span>
                   </div>
+                  {/* Author */}
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0 text-right">
+                    {record.changed_by}
+                  </span>
                 </div>
+                {record.comment && (
+                  <p className="mt-1.5 ml-[140px] text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+                    {record.comment}
+                  </p>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
       </div>
 
       {/* Confirmation Dialog */}
