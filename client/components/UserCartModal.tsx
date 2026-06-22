@@ -233,13 +233,21 @@ export function statusBadgeClasses(color: string): string {
 }
 
 // ─── Comments tab ─────────────────────────────────────────────────────────────
-function CommentsTab({ cart, token, username, statuses, isAdmin, onStatusCreated }: {
+const ORDER_STATUS_LOCK: Record<string, { label: string; cls: string }> = {
+    in_progress: { label: "Заказ передан в доставку — обновление статуса недоступно", cls: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300" },
+    delivered:   { label: "Заказ доставлен — обновление статуса недоступно",          cls: "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300" },
+    cancelled:   { label: "Заказ отменён — обновление статуса недоступно",            cls: "bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300" },
+    deleted:     { label: "Корзина удалена клиентом — обновление статуса недоступно", cls: "bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400" },
+};
+
+function CommentsTab({ cart, token, username, statuses, isAdmin, onStatusCreated, orderStatus }: {
     cart: UserCart;
     token: string;
     username: string;
     statuses: CartStatus[];
     isAdmin: boolean;
     onStatusCreated: (s: CartStatus) => void;
+    orderStatus: string;
 }) {
     const [comments, setComments] = useState<CartComment[]>([]);
     const [loading, setLoading] = useState(true);
@@ -345,7 +353,16 @@ function CommentsTab({ cart, token, username, statuses, isAdmin, onStatusCreated
                 <div ref={bottomRef} />
             </div>
 
-            {/* Input */}
+            {/* Locked banner when order is in delivery state */}
+            {orderStatus !== "pending" && ORDER_STATUS_LOCK[orderStatus] && (
+                <div className={`rounded-lg border px-4 py-3 text-xs font-medium flex items-center gap-2 ${ORDER_STATUS_LOCK[orderStatus].cls}`}>
+                    <CheckCircle className="h-4 w-4 shrink-0" />
+                    {ORDER_STATUS_LOCK[orderStatus].label}
+                </div>
+            )}
+
+            {/* Input — hidden when order is in delivery state */}
+            {(orderStatus === "pending" || !ORDER_STATUS_LOCK[orderStatus]) && (
             <div className="border-t border-gray-100 dark:border-gray-800 pt-3 flex flex-col gap-2">
                 {/* Status selector */}
                 <div className="flex flex-col gap-1.5">
@@ -436,6 +453,7 @@ function CommentsTab({ cart, token, username, statuses, isAdmin, onStatusCreated
                     </div>
                 </div>
             </div>
+            )}
         </div>
     );
 }
@@ -664,6 +682,7 @@ export function UserCartModal({ cart, isOpen, onClose, initialTab = "cart", t }:
                             statuses={statuses}
                             isAdmin={isAdmin}
                             onStatusCreated={(s) => setStatuses((prev: CartStatus[]) => [...prev, s])}
+                            orderStatus={cart.order_status ?? "pending"}
                         />
                     )}
                 </div>

@@ -655,12 +655,11 @@ export default function UserCarts() {
                                                         <span className="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{cart.source}</span>
                                                     </td>
                                                     <td className="py-3 px-3">
-                                                        <div className="flex flex-col gap-1">
+                                                        {cart.order_status && cart.order_status !== "pending" ? (
+                                                            <OrderStatusBadge status={cart.order_status} />
+                                                        ) : (
                                                             <StatusBadge status={cart.cart_status} statuses={cartStatuses} />
-                                                            {cart.order_status && cart.order_status !== "pending" && (
-                                                                <OrderStatusBadge status={cart.order_status} />
-                                                            )}
-                                                        </div>
+                                                        )}
                                                     </td>
                                                     <td className="py-3 px-3 whitespace-nowrap">
                                                         {cart.comment_by ? (
