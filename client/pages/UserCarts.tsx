@@ -462,12 +462,12 @@ export default function UserCarts() {
     const lastSync = syncStatus?.lastSyncAt || stats?.lastSyncedAt;
 
     const totalSum = useMemo(
-        () => allCarts.reduce((sum, c) => sum + (c.invoice_total || 0), 0),
-        [allCarts]
+        () => filteredCarts.reduce((sum, c) => sum + (c.invoice_total || 0), 0),
+        [filteredCarts]
     );
     const unprocessedSum = useMemo(
-        () => allCarts.filter((c) => c.cart_status === "unprocessed").reduce((sum, c) => sum + (c.invoice_total || 0), 0),
-        [allCarts]
+        () => filteredCarts.filter((c) => c.cart_status === "unprocessed").reduce((sum, c) => sum + (c.invoice_total || 0), 0),
+        [filteredCarts]
     );
 
     if (authLoading) {
@@ -503,11 +503,11 @@ export default function UserCarts() {
                     </div>
 
                     {/* Total sum highlight */}
-                    {allCarts.length > 0 && (
+                    {filteredCarts.length > 0 && (
                         <div className="flex-1 flex justify-center">
                             <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-xl px-8 py-3 text-center min-w-0">
                                 <p className="text-xs font-semibold uppercase tracking-widest text-purple-500 dark:text-purple-400 mb-1">
-                                    Общая сумма корзин
+                                    {activeFilterCount(filters) > 0 ? "Сумма по фильтру" : "Общая сумма корзин"}
                                 </p>
                                 <p className="text-2xl font-bold text-purple-700 dark:text-purple-300 whitespace-nowrap">
                                     {formatSum(totalSum)} {t.sum}
@@ -522,11 +522,11 @@ export default function UserCarts() {
                     )}
 
                     <div className="flex items-center gap-2 shrink-0">
-                        {stats && (
+                        {allCarts.length > 0 && (
                             <div className="hidden sm:flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mr-1">
-                                <span>{t.total || "Всего"}: <b className="text-gray-700 dark:text-gray-300">{stats.total}</b></span>
-                                <span className="text-yellow-600 dark:text-yellow-400">{stats.unprocessed} {t.unprocessed}</span>
-                                <span className="text-green-600 dark:text-green-400">{stats.processed} {t.processed}</span>
+                                <span>{t.total || "Всего"}: <b className="text-gray-700 dark:text-gray-300">{filteredCarts.length}</b></span>
+                                <span className="text-yellow-600 dark:text-yellow-400">{filteredCarts.filter((c) => c.cart_status === "unprocessed").length} {t.unprocessed}</span>
+                                <span className="text-blue-600 dark:text-blue-400">{filteredCarts.filter((c) => c.cart_status === "processed").length} {t.processed}</span>
                             </div>
                         )}
                         <Button onClick={loadCarts} variant="outline" size="sm" disabled={isLoading} className="gap-1.5">
