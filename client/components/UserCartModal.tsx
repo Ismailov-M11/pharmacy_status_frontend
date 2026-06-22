@@ -190,6 +190,9 @@ function MapTab({ cart }: { cart: UserCart }) {
                 ref={containerRef}
                 className="w-full rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
                 style={{ height: 400 }}
+                onPointerDown={(e: React.PointerEvent) => e.stopPropagation()}
+                onMouseDown={(e: React.MouseEvent) => e.stopPropagation()}
+                onClick={(e: React.MouseEvent) => e.stopPropagation()}
             />
         </div>
     );
