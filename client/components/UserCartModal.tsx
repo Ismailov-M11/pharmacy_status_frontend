@@ -338,7 +338,7 @@ function CommentsTab({ cart, token, username, statuses, isAdmin, onStatusCreated
                         <p>Комментариев пока нет</p>
                     </div>
                 ) : (
-                    comments.map((c) => {
+                    comments.map((c, idx, arr) => {
                         const isOrderStatus = c.status?.startsWith("__order__");
                         const orderKey = isOrderStatus ? c.status!.replace("__order__", "") : null;
                         const orderBadge = orderKey ? ORDER_STATUS_BADGE[orderKey] : null;
@@ -348,33 +348,37 @@ function CommentsTab({ cart, token, username, statuses, isAdmin, onStatusCreated
                         const isSystem = c.created_by === "system";
                         const badgeLabel = orderBadge?.label ?? operatorStatus?.label;
                         const badgeCls = orderBadge?.cls ?? (operatorStatus ? statusBadgeClasses(operatorStatus.color) : "");
+                        const isLast = idx === arr.length - 1;
                         return (
-                            <div key={c.id} className="py-2.5 border-b border-gray-100 dark:border-gray-800 last:border-0">
-                                <div className="flex items-center gap-3">
-                                    {/* Date */}
-                                    <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 w-32">
-                                        {format(new Date(c.created_at), "dd.MM.yyyy HH:mm")}
-                                    </span>
-                                    {/* Status badge */}
-                                    <div className="flex-1">
+                            <div key={c.id} className="relative flex gap-3 pb-4 last:pb-0">
+                                {/* Timeline column */}
+                                <div className="flex flex-col items-center shrink-0">
+                                    <div className={`w-3 h-3 rounded-full border-2 mt-0.5 z-10 ${isLast ? "border-purple-500 bg-purple-500" : "border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-600"}`} />
+                                    {!isLast && <div className="w-0.5 flex-1 bg-gray-200 dark:bg-gray-700 mt-1" />}
+                                </div>
+                                {/* Content */}
+                                <div className="flex-1 min-w-0 pb-0.5">
+                                    <div className="flex items-center flex-wrap gap-x-2 gap-y-1">
+                                        <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">
+                                            {format(new Date(c.created_at), "dd.MM.yyyy HH:mm")}
+                                        </span>
                                         {badgeLabel ? (
-                                            <span className={`inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full ${badgeCls}`}>
+                                            <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${badgeCls}`}>
                                                 {badgeLabel}
                                             </span>
                                         ) : (
                                             <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
                                         )}
+                                        <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                                            {isSystem ? "Синхронизация" : c.created_by}
+                                        </span>
                                     </div>
-                                    {/* Author */}
-                                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0 text-right">
-                                        {isSystem ? "Синхронизация" : c.created_by}
-                                    </span>
+                                    {c.text && (
+                                        <p className="mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                                            {c.text}
+                                        </p>
+                                    )}
                                 </div>
-                                {c.text && (
-                                    <p className="mt-1.5 ml-[140px] text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                                        {c.text}
-                                    </p>
-                                )}
                             </div>
                         );
                     })
