@@ -41,9 +41,12 @@ import {
     getCartSyncStatus,
     triggerCartSync,
     getCartStatuses,
+    getOrderSyncStatus,
+    triggerOrderSync,
     UserCart,
     CartStatus,
     CartSyncStatus,
+    OrderSyncState,
 } from "@/lib/userCartApi";
 import { statusBadgeClasses } from "@/components/UserCartModal";
 
@@ -98,6 +101,25 @@ function SyncProgressBar({ progress }: { progress: { current: number; total: num
     );
 }
 
+// ─── Order status badge ────────────────────────────────────────────────────────
+const ORDER_STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
+    pending:     { label: "Ожидает",    cls: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400" },
+    in_progress: { label: "В процессе", cls: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300" },
+    delivered:   { label: "Доставлен",  cls: "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300" },
+    cancelled:   { label: "Отменён",    cls: "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300" },
+    deleted:     { label: "Удалён",     cls: "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 line-through" },
+};
+
+function OrderStatusBadge({ status }: { status: string }) {
+    if (status === "pending") return <span className="text-gray-300 dark:text-gray-600">—</span>;
+    const cfg = ORDER_STATUS_CONFIG[status] ?? ORDER_STATUS_CONFIG.pending;
+    return (
+        <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${cfg.cls}`}>
+            {cfg.label}
+        </span>
+    );
+}
+
 // ─── Status badge ──────────────────────────────────────────────────────────────
 function StatusBadge({ status, statuses }: { status: string; statuses: CartStatus[] }) {
     const found = statuses.find((s) => s.value === status);
@@ -126,6 +148,7 @@ interface Filters {
     historyStatuses: string[];
     historyDateFrom: string;
     historyDateTo: string;
+    orderStatus: string;
 }
 
 const EMPTY_FILTERS: Filters = {
@@ -133,6 +156,7 @@ const EMPTY_FILTERS: Filters = {
     itemsMin: "", itemsMax: "", totalMin: "", totalMax: "",
     promoCodes: [], sources: [], status: "all", commentUsers: [],
     historyStatuses: [], historyDateFrom: "", historyDateTo: "",
+    orderStatus: "",
 };
 
 function activeFilterCount(f: Filters): number {
@@ -146,6 +170,7 @@ function activeFilterCount(f: Filters): number {
     if (f.status && f.status !== "all") n++;
     if (f.commentUsers.length) n++;
     if (f.historyStatuses.length) n++;
+    if (f.orderStatus) n++;
     return n;
 }
 
@@ -206,6 +231,10 @@ export default function UserCarts() {
     const [syncStatus, setSyncStatus] = useState<CartSyncStatus | null>(null);
     const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, percent: 0, phase: "" });
     const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const [orderSyncState, setOrderSyncState] = useState<OrderSyncState | null>(null);
+    const [isOrderSyncing, setIsOrderSyncing] = useState(false);
+    const [orderSyncCooldown, setOrderSyncCooldown] = useState(0);
+    const orderCooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const [page, setPage] = useState(0);
     const [query, setQuery] = useState("");
     const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -248,8 +277,12 @@ export default function UserCarts() {
             loadCarts();
             loadSyncStatus();
             getCartStatuses(token).then(setCartStatuses).catch(() => {});
+            getOrderSyncStatus(token).then(setOrderSyncState).catch(() => {});
         }
     }, [authLoading, isAuthenticated, loadCarts, loadSyncStatus, token]);
+
+    // Cleanup order sync cooldown on unmount
+    useEffect(() => () => { if (orderCooldownRef.current) clearInterval(orderCooldownRef.current); }, []);
 
     // ─── Sync polling (like OsonList) ──────────────────────────────────────────
     useEffect(() => {
@@ -288,6 +321,30 @@ export default function UserCarts() {
             toast.info("Синхронизация запущена. Подождите несколько минут...");
         } catch (err: unknown) {
             toast.error(err instanceof Error ? err.message : "Не удалось запустить синхронизацию");
+        }
+    };
+
+    // ─── Order sync ────────────────────────────────────────────────────────────
+    const handleOrderSync = async () => {
+        if (!token || isOrderSyncing || orderSyncCooldown > 0) return;
+        setIsOrderSyncing(true);
+        try {
+            const result = await triggerOrderSync(token);
+            setOrderSyncState((prev) => prev ? { ...prev, lastSyncAt: new Date().toISOString(), lastSyncResult: result } : null);
+            toast.success(`Проверено ${result.checked} корзин. Доставлено: ${result.delivered}, Отменено: ${result.cancelled}`);
+            if (result.delivered > 0 || result.cancelled > 0) loadCarts();
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : "Ошибка проверки статусов заказов");
+        } finally {
+            setIsOrderSyncing(false);
+            // Start 60-second cooldown
+            setOrderSyncCooldown(60);
+            orderCooldownRef.current = setInterval(() => {
+                setOrderSyncCooldown((prev) => {
+                    if (prev <= 1) { clearInterval(orderCooldownRef.current!); return 0; }
+                    return prev - 1;
+                });
+            }, 1000);
         }
     };
 
@@ -355,6 +412,7 @@ export default function UserCarts() {
         }
         if (filters.sources.length) result = result.filter((c) => filters.sources.includes(c.source ?? ""));
         if (filters.commentUsers.length) result = result.filter((c) => filters.commentUsers.includes(c.comment_by ?? ""));
+        if (filters.orderStatus) result = result.filter((c) => (c.order_status ?? "pending") === filters.orderStatus);
         return result;
     }, [allCarts, query, filters]);
 
@@ -473,6 +531,19 @@ export default function UserCarts() {
                         >
                             <RefreshCw className={`h-4 w-4 ${isSyncing || syncStatus?.isSyncing ? "animate-spin" : ""}`} />
                             <span className="hidden sm:inline">{t.syncNow}</span>
+                        </Button>
+                        <Button
+                            onClick={handleOrderSync}
+                            disabled={isOrderSyncing || orderSyncCooldown > 0}
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5 border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                            title={orderSyncState?.lastSyncAt ? `Последняя проверка: ${format(new Date(orderSyncState.lastSyncAt), "dd.MM.yyyy HH:mm")}` : "Проверить статусы заказов"}
+                        >
+                            <RefreshCw className={`h-4 w-4 ${isOrderSyncing ? "animate-spin" : ""}`} />
+                            <span className="hidden sm:inline">
+                                {isOrderSyncing ? "Проверка..." : orderSyncCooldown > 0 ? `${orderSyncCooldown}с` : "Статусы заказов"}
+                            </span>
                         </Button>
                     </div>
                 </div>
@@ -607,7 +678,12 @@ export default function UserCarts() {
                                                         <span className="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{cart.source}</span>
                                                     </td>
                                                     <td className="py-3 px-3">
-                                                        <StatusBadge status={cart.cart_status} statuses={cartStatuses} />
+                                                        <div className="flex flex-col gap-1">
+                                                            <StatusBadge status={cart.cart_status} statuses={cartStatuses} />
+                                                            {cart.order_status && cart.order_status !== "pending" && (
+                                                                <OrderStatusBadge status={cart.order_status} />
+                                                            )}
+                                                        </div>
                                                     </td>
                                                     <td className="py-3 px-3 whitespace-nowrap">
                                                         {cart.comment_by ? (
@@ -753,6 +829,26 @@ export default function UserCarts() {
                                         <CheckList options={allCommentUsers} selected={pendingFilters.commentUsers} onChange={(v) => setPendingFilters((f) => ({ ...f, commentUsers: v }))} searchable />
                                     </FilterSection>
                                 )}
+                            </div>
+                        </div>
+
+                        {/* ─── Order status filter ────────────────────────── */}
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
+                            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 px-1">Статус заказа</p>
+                            <div className="flex flex-wrap gap-2">
+                                {Object.entries(ORDER_STATUS_CONFIG).map(([value, cfg]) => (
+                                    <button
+                                        key={value}
+                                        onClick={() => setPendingFilters((f) => ({ ...f, orderStatus: f.orderStatus === value ? "" : value }))}
+                                        className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                                            pendingFilters.orderStatus === value
+                                                ? "border-purple-500 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300"
+                                                : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-purple-300"
+                                        }`}
+                                    >
+                                        {cfg.label}
+                                    </button>
+                                ))}
                             </div>
                         </div>
 

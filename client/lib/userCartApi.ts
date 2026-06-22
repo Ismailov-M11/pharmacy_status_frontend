@@ -58,6 +58,8 @@ export interface UserCart {
   comment_by: string | null;
   comment_at: string | null;
   last_synced_at: string | null;
+  order_status: "pending" | "in_progress" | "delivered" | "cancelled" | "deleted";
+  order_status_synced_at: string | null;
 }
 
 export interface CartFilters {
@@ -215,6 +217,37 @@ export interface CartComment {
 export async function getCartComments(token: string, cartId: number): Promise<CartComment[]> {
   const res = await fetch(`${BASE}/${cartId}/comments`, { headers: authHeader(token) });
   return handleResponse<CartComment[]>(res);
+}
+
+// ─── Order status sync ──────────────────────────────────────────────────────────
+
+export interface OrderSyncResult {
+  success: boolean;
+  delivered: number;
+  cancelled: number;
+  checked: number;
+  error?: string;
+}
+
+export interface OrderSyncState {
+  isSyncing: boolean;
+  lastSyncAt: string | null;
+  lastSyncError: string | null;
+  lastSyncResult: { delivered: number; cancelled: number; checked: number };
+  hasToken: boolean;
+}
+
+export async function getOrderSyncStatus(token: string): Promise<OrderSyncState> {
+  const res = await fetch(`${BASE}/order-sync-status`, { headers: authHeader(token) });
+  return handleResponse<OrderSyncState>(res);
+}
+
+export async function triggerOrderSync(token: string): Promise<OrderSyncResult> {
+  const res = await fetch(`${BASE}/order-sync`, {
+    method: "POST",
+    headers: authHeader(token),
+  });
+  return handleResponse<OrderSyncResult>(res);
 }
 
 export async function addCartComment(
