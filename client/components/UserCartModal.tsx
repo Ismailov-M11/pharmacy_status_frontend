@@ -339,18 +339,31 @@ function CommentsTab({ cart, token, username, statuses, isAdmin, onStatusCreated
                     </div>
                 ) : (
                     comments.map((c) => {
-                        const s = c.status ? statuses.find((x: CartStatus) => x.value === c.status) : null;
+                        const isOrderStatus = c.status?.startsWith("__order__");
+                        const orderKey = isOrderStatus ? c.status!.replace("__order__", "") : null;
+                        const orderBadge = orderKey ? ORDER_STATUS_BADGE[orderKey] : null;
+                        const operatorStatus = !isOrderStatus && c.status
+                            ? statuses.find((x: CartStatus) => x.value === c.status)
+                            : null;
+                        const isSystem = c.created_by === "system";
                         return (
-                            <div key={c.id} className="bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-3 border border-gray-100 dark:border-gray-700">
-                                {s && (
-                                    <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full mb-2 ${statusBadgeClasses(s.color)}`}>
-                                        {s.label}
+                            <div key={c.id} className={`rounded-xl px-4 py-3 border ${isSystem ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30" : "bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700"}`}>
+                                {orderBadge && (
+                                    <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full mb-2 ${orderBadge.cls}`}>
+                                        {orderBadge.label}
+                                    </span>
+                                )}
+                                {operatorStatus && (
+                                    <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full mb-2 ${statusBadgeClasses(operatorStatus.color)}`}>
+                                        {operatorStatus.label}
                                     </span>
                                 )}
                                 {c.text && <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">{c.text}</p>}
                                 <div className="flex items-center gap-2 mt-2 text-xs text-gray-400 dark:text-gray-500">
                                     <User className="h-3 w-3 shrink-0" />
-                                    <span className="font-medium text-gray-500 dark:text-gray-400">{c.created_by}</span>
+                                    <span className="font-medium text-gray-500 dark:text-gray-400">
+                                        {isSystem ? "Синхронизация" : c.created_by}
+                                    </span>
                                     <span>·</span>
                                     <span>{format(new Date(c.created_at), "dd.MM.yyyy HH:mm")}</span>
                                 </div>
