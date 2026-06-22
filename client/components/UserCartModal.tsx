@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { UserCart, CartItem, CartComment, getCartComments, addCartComment } from "@/lib/userCartApi";
+import { UserCart, CartItem, CartComment, CartStatus, getCartComments, addCartComment, getCartStatuses, createCartStatus } from "@/lib/userCartApi";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import {
     User, Store, Tag, MapPin, Phone, Package, ShoppingCart,
-    CheckCircle, Clock, MessageSquare, Loader2, Send, Map, PhoneOff,
+    CheckCircle, MessageSquare, Loader2, Send, Map, Plus, X as XIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -205,25 +205,52 @@ function MapTab({ cart }: { cart: UserCart }) {
     );
 }
 
-// ─── Status options for comment form ──────────────────────────────────────────
-const COMMENT_STATUSES = [
-    { value: "unprocessed", label: "Не обработан", icon: Clock, cls: "border-yellow-300 bg-yellow-50 text-yellow-700 dark:border-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" },
-    { value: "missed_call", label: "Недозвон",     icon: PhoneOff, cls: "border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
-    { value: "processed",   label: "Обработан",    icon: CheckCircle, cls: "border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-900/30 dark:text-green-400" },
-] as const;
+// ─── Color map for dynamic statuses ───────────────────────────────────────────
+const COLOR_MAP: Record<string, { btn: string; badge: string }> = {
+    yellow:  { btn: "border-yellow-300 bg-yellow-50 text-yellow-700 dark:border-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",   badge: "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400" },
+    green:   { btn: "border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-900/30 dark:text-green-400",         badge: "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400" },
+    orange:  { btn: "border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-900/30 dark:text-orange-400",   badge: "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400" },
+    blue:    { btn: "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-400",               badge: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400" },
+    purple:  { btn: "border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-700 dark:bg-purple-900/30 dark:text-purple-400",   badge: "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400" },
+    red:     { btn: "border-red-300 bg-red-50 text-red-700 dark:border-red-700 dark:bg-red-900/30 dark:text-red-400",                     badge: "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400" },
+    pink:    { btn: "border-pink-300 bg-pink-50 text-pink-700 dark:border-pink-700 dark:bg-pink-900/30 dark:text-pink-400",               badge: "bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-400" },
+    cyan:    { btn: "border-cyan-300 bg-cyan-50 text-cyan-700 dark:border-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400",               badge: "bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-400" },
+    teal:    { btn: "border-teal-300 bg-teal-50 text-teal-700 dark:border-teal-700 dark:bg-teal-900/30 dark:text-teal-400",               badge: "bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-400" },
+    indigo:  { btn: "border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",   badge: "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400" },
+    violet:  { btn: "border-violet-300 bg-violet-50 text-violet-700 dark:border-violet-700 dark:bg-violet-900/30 dark:text-violet-400",   badge: "bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-400" },
+    rose:    { btn: "border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-700 dark:bg-rose-900/30 dark:text-rose-400",               badge: "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400" },
+    sky:     { btn: "border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-700 dark:bg-sky-900/30 dark:text-sky-400",                     badge: "bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-400" },
+    lime:    { btn: "border-lime-300 bg-lime-50 text-lime-700 dark:border-lime-700 dark:bg-lime-900/30 dark:text-lime-400",               badge: "bg-lime-100 dark:bg-lime-900/40 text-lime-700 dark:text-lime-400" },
+    amber:   { btn: "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-400",         badge: "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400" },
+    emerald: { btn: "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400", badge: "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400" },
+    fuchsia: { btn: "border-fuchsia-300 bg-fuchsia-50 text-fuchsia-700 dark:border-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-400", badge: "bg-fuchsia-100 dark:bg-fuchsia-900/40 text-fuchsia-700 dark:text-fuchsia-400" },
+    slate:   { btn: "border-slate-300 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900/30 dark:text-slate-400",         badge: "bg-slate-100 dark:bg-slate-900/40 text-slate-700 dark:text-slate-400" },
+    gray:    { btn: "border-gray-300 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-400",               badge: "bg-gray-100 dark:bg-gray-900/40 text-gray-700 dark:text-gray-400" },
+};
+
+export function statusBadgeClasses(color: string): string {
+    return (COLOR_MAP[color] ?? COLOR_MAP.gray).badge;
+}
 
 // ─── Comments tab ─────────────────────────────────────────────────────────────
-function CommentsTab({ cart, token, username }: {
+function CommentsTab({ cart, token, username, statuses, isAdmin, onStatusCreated }: {
     cart: UserCart;
     token: string;
     username: string;
+    statuses: CartStatus[];
+    isAdmin: boolean;
+    onStatusCreated: (s: CartStatus) => void;
 }) {
     const [comments, setComments] = useState<CartComment[]>([]);
     const [loading, setLoading] = useState(true);
     const [text, setText] = useState("");
     const [selectedStatus, setSelectedStatus] = useState<string>("");
     const [saving, setSaving] = useState(false);
+    const [addingStatus, setAddingStatus] = useState(false);
+    const [newStatusLabel, setNewStatusLabel] = useState("");
+    const [creatingStatus, setCreatingStatus] = useState(false);
     const bottomRef = useRef<HTMLDivElement>(null);
+    const newStatusInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         let active = true;
@@ -238,6 +265,10 @@ function CommentsTab({ cart, token, username }: {
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [comments]);
+
+    useEffect(() => {
+        if (addingStatus) setTimeout(() => newStatusInputRef.current?.focus(), 50);
+    }, [addingStatus]);
 
     const canSend = text.trim().length > 0 && selectedStatus !== "";
 
@@ -256,6 +287,23 @@ function CommentsTab({ cart, token, username }: {
         }
     };
 
+    const handleCreateStatus = async () => {
+        if (!newStatusLabel.trim()) return;
+        setCreatingStatus(true);
+        try {
+            const created = await createCartStatus(token, newStatusLabel.trim(), username);
+            onStatusCreated(created);
+            setSelectedStatus(created.value);
+            setNewStatusLabel("");
+            setAddingStatus(false);
+            toast.success(`Статус «${created.label}» создан`);
+        } catch {
+            toast.error("Ошибка при создании статуса");
+        } finally {
+            setCreatingStatus(false);
+        }
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSend();
     };
@@ -263,7 +311,7 @@ function CommentsTab({ cart, token, username }: {
     return (
         <div className="flex flex-col gap-4">
             {/* History */}
-            <div className="flex flex-col gap-2 max-h-[260px] overflow-y-auto pr-1">
+            <div className="flex flex-col gap-2 max-h-[240px] overflow-y-auto pr-1">
                 {loading ? (
                     <div className="flex justify-center py-8">
                         <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
@@ -296,22 +344,67 @@ function CommentsTab({ cart, token, username }: {
                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
                         Статус <span className="text-red-400">*</span>
                     </span>
-                    <div className="flex gap-2 flex-wrap">
-                        {COMMENT_STATUSES.map(({ value, label, icon: Icon, cls }) => (
+                    <div className="flex gap-2 flex-wrap items-center">
+                        {statuses.map((s) => {
+                            const cls = (COLOR_MAP[s.color] ?? COLOR_MAP.gray).btn;
+                            const isSelected = selectedStatus === s.value;
+                            return (
+                                <button
+                                    key={s.value}
+                                    type="button"
+                                    onClick={() => setSelectedStatus(isSelected ? "" : s.value)}
+                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                                        isSelected
+                                            ? cls + " ring-2 ring-offset-1 ring-current"
+                                            : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-300"
+                                    }`}
+                                >
+                                    {s.label}
+                                </button>
+                            );
+                        })}
+
+                        {/* Admin: add new status */}
+                        {isAdmin && !addingStatus && (
                             <button
-                                key={value}
                                 type="button"
-                                onClick={() => setSelectedStatus(value === selectedStatus ? "" : value)}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
-                                    selectedStatus === value
-                                        ? cls + " ring-2 ring-offset-1 ring-current"
-                                        : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-300"
-                                }`}
+                                onClick={() => setAddingStatus(true)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 text-xs text-gray-400 dark:text-gray-500 hover:border-purple-400 hover:text-purple-500 transition-all"
                             >
-                                <Icon className="h-3.5 w-3.5" />
-                                {label}
+                                <Plus className="h-3 w-3" />
+                                Новый
                             </button>
-                        ))}
+                        )}
+
+                        {/* Inline new status form */}
+                        {isAdmin && addingStatus && (
+                            <div className="flex items-center gap-1.5 mt-1 w-full">
+                                <input
+                                    ref={newStatusInputRef}
+                                    type="text"
+                                    value={newStatusLabel}
+                                    onChange={(e) => setNewStatusLabel(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === "Enter") handleCreateStatus(); if (e.key === "Escape") { setAddingStatus(false); setNewStatusLabel(""); } }}
+                                    placeholder="Название статуса..."
+                                    className="flex-1 px-2.5 py-1.5 text-xs border border-purple-300 dark:border-purple-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:ring-1 focus:ring-purple-400"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleCreateStatus}
+                                    disabled={creatingStatus || !newStatusLabel.trim()}
+                                    className="p-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white transition-colors"
+                                >
+                                    {creatingStatus ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { setAddingStatus(false); setNewStatusLabel(""); }}
+                                    className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    <XIcon className="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -341,17 +434,24 @@ function CommentsTab({ cart, token, username }: {
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
 export function UserCartModal({ cart, isOpen, onClose, initialTab = "cart", t }: UserCartModalProps) {
-    const { token, user } = useAuth();
+    const { token, user, role } = useAuth();
     const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+    const [statuses, setStatuses] = useState<CartStatus[]>([]);
+
+    useEffect(() => {
+        if (!token) return;
+        getCartStatuses(token).then(setStatuses).catch(() => {});
+    }, [token]);
 
     useEffect(() => {
         if (isOpen) setActiveTab(initialTab);
     }, [isOpen, initialTab]);
 
+    const isAdmin = role === "ROLE_ADMIN";
+
     if (!cart) return null;
 
     const displayName = [cart.customer_first_name, cart.customer_last_name].filter(Boolean).join(" ") || cart.customer_phone;
-    const isProcessed = cart.cart_status === "processed";
 
     const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
         { id: "cart",     label: "Корзина",      icon: <ShoppingCart className="h-4 w-4" /> },
@@ -386,15 +486,14 @@ export function UserCartModal({ cart, isOpen, onClose, initialTab = "cart", t }:
                     <DialogTitle className="flex items-center gap-3 text-lg font-bold text-gray-900 dark:text-gray-100">
                         <ShoppingCart className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                         {t.userCarts} #{cart.id}
-                        {isProcessed ? (
-                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 font-normal">
-                                <CheckCircle className="h-3 w-3" />{t.processed}
-                            </span>
-                        ) : (
-                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 font-normal">
-                                <Clock className="h-3 w-3" />{t.unprocessed}
-                            </span>
-                        )}
+                        {(() => {
+                            const s = statuses.find((x: CartStatus) => x.value === cart.cart_status);
+                            return (
+                                <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-normal ${statusBadgeClasses(s?.color ?? "gray")}`}>
+                                    {s?.label ?? cart.cart_status}
+                                </span>
+                            );
+                        })()}
                     </DialogTitle>
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                         {format(new Date(cart.creation_date), "dd.MM.yyyy HH:mm")}
@@ -554,6 +653,9 @@ export function UserCartModal({ cart, isOpen, onClose, initialTab = "cart", t }:
                             cart={cart}
                             token={token}
                             username={user?.username ?? ""}
+                            statuses={statuses}
+                            isAdmin={isAdmin}
+                            onStatusCreated={(s) => setStatuses((prev: CartStatus[]) => [...prev, s])}
                         />
                     )}
                 </div>

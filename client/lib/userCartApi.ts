@@ -170,6 +170,31 @@ export async function getCartFilterOptions(token: string): Promise<CartFilterOpt
   return handleResponse<CartFilterOptions>(res);
 }
 
+// ─── Cart statuses ─────────────────────────────────────────────────────────────
+
+export interface CartStatus {
+  id: number;
+  value: string;
+  label: string;
+  color: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export async function getCartStatuses(token: string): Promise<CartStatus[]> {
+  const res = await fetch(`${BASE}/statuses`, { headers: authHeader(token) });
+  return handleResponse<CartStatus[]>(res);
+}
+
+export async function createCartStatus(token: string, label: string, createdBy: string): Promise<CartStatus> {
+  const res = await fetch(`${BASE}/statuses`, {
+    method: "POST",
+    headers: authHeader(token),
+    body: JSON.stringify({ label, createdBy }),
+  });
+  return handleResponse<CartStatus>(res);
+}
+
 // ─── Comment history ───────────────────────────────────────────────────────────
 
 export interface CartComment {

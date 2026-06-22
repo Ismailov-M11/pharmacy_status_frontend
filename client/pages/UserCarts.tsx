@@ -31,10 +31,7 @@ import {
     Search,
     SlidersHorizontal,
     X,
-    CheckCircle,
-    Clock,
     MessageSquare,
-    PhoneOff,
     User,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -43,9 +40,12 @@ import {
     getUserCarts,
     getCartSyncStatus,
     triggerCartSync,
+    getCartStatuses,
     UserCart,
+    CartStatus,
     CartSyncStatus,
 } from "@/lib/userCartApi";
+import { statusBadgeClasses } from "@/components/UserCartModal";
 
 const PAGE_SIZE = 50;
 
@@ -99,27 +99,13 @@ function SyncProgressBar({ progress }: { progress: { current: number; total: num
 }
 
 // ─── Status badge ──────────────────────────────────────────────────────────────
-function StatusBadge({ status, t }: { status: "unprocessed" | "processed" | "missed_call"; t: Record<string, string> }) {
-    if (status === "processed") {
-        return (
-            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 whitespace-nowrap">
-                <CheckCircle className="h-3 w-3" />
-                {t.processed}
-            </span>
-        );
-    }
-    if (status === "missed_call") {
-        return (
-            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 whitespace-nowrap">
-                <PhoneOff className="h-3 w-3" />
-                Недозвон
-            </span>
-        );
-    }
+function StatusBadge({ status, statuses }: { status: string; statuses: CartStatus[] }) {
+    const found = statuses.find((s) => s.value === status);
+    const label = found?.label ?? status;
+    const cls = statusBadgeClasses(found?.color ?? "gray");
     return (
-        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 whitespace-nowrap">
-            <Clock className="h-3 w-3" />
-            {t.unprocessed}
+        <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${cls}`}>
+            {label}
         </span>
     );
 }
@@ -208,6 +194,7 @@ export default function UserCarts() {
     const navigate = useNavigate();
 
     const [allCarts, setAllCarts] = useState<UserCart[]>([]);
+    const [cartStatuses, setCartStatuses] = useState<CartStatus[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSyncing, setIsSyncing] = useState(false);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -252,11 +239,12 @@ export default function UserCarts() {
     }, [token]);
 
     useEffect(() => {
-        if (!authLoading && isAuthenticated) {
+        if (!authLoading && isAuthenticated && token) {
             loadCarts();
             loadSyncStatus();
+            getCartStatuses(token).then(setCartStatuses).catch(() => {});
         }
-    }, [authLoading, isAuthenticated, loadCarts, loadSyncStatus]);
+    }, [authLoading, isAuthenticated, loadCarts, loadSyncStatus, token]);
 
     // ─── Sync polling (like OsonList) ──────────────────────────────────────────
     useEffect(() => {
@@ -592,7 +580,7 @@ export default function UserCarts() {
                                                         <span className="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{cart.source}</span>
                                                     </td>
                                                     <td className="py-3 px-3">
-                                                        <StatusBadge status={cart.cart_status} t={t as unknown as Record<string, string>} />
+                                                        <StatusBadge status={cart.cart_status} statuses={cartStatuses} />
                                                     </td>
                                                     <td className="py-3 px-3 whitespace-nowrap">
                                                         {cart.comment_by ? (
