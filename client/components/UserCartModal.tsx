@@ -50,8 +50,95 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 
 // ─── Map tab ──────────────────────────────────────────────────────────────────
 function MapTab({ cart }: { cart: UserCart }) {
+    const containerRef = useRef<HTMLDivElement>(null);
+
     const hasClient = cart.latitude != null && cart.longitude != null;
     const hasMarket = cart.market_latitude != null && cart.market_longitude != null;
+
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el || (!hasClient && !hasMarket)) return;
+
+        const ymaps = (window as any).ymaps;
+        if (!ymaps || typeof ymaps.ready !== "function") return;
+
+        let cancelled = false;
+        let mapInstance: any = null;
+
+        ymaps.ready(() => {
+            if (cancelled || !el) return;
+
+            const defaultCenter: [number, number] = hasMarket
+                ? [cart.market_latitude!, cart.market_longitude!]
+                : [cart.latitude!, cart.longitude!];
+
+            mapInstance = new ymaps.Map(el, {
+                center: defaultCenter,
+                zoom: 13,
+                controls: ["zoomControl"],
+            }, { suppressMapOpenBlock: true });
+
+            // Pharmacy marker — blue
+            if (hasMarket) {
+                mapInstance.geoObjects.add(new ymaps.Placemark(
+                    [cart.market_latitude!, cart.market_longitude!],
+                    {},
+                    { preset: "islands#blueCircleDotIcon" }
+                ));
+            }
+
+            // Client marker — red
+            if (hasClient) {
+                mapInstance.geoObjects.add(new ymaps.Placemark(
+                    [cart.latitude!, cart.longitude!],
+                    {},
+                    { preset: "islands#redCircleDotIcon" }
+                ));
+            }
+
+            if (hasClient && hasMarket) {
+                ymaps.route(
+                    [[cart.market_latitude!, cart.market_longitude!], [cart.latitude!, cart.longitude!]],
+                    { mapStateAutoApply: false, routingMode: "auto" }
+                ).then((route: any) => {
+                    if (cancelled) return;
+                    // Style: single purple line, no popups
+                    route.getPaths().options.set({
+                        strokeColor: "6366f1",
+                        strokeWidth: 4,
+                        opacity: 0.8,
+                        openBalloonOnClick: false,
+                    });
+                    // Hide route's own waypoint markers (we already have our own)
+                    route.getWayPoints().options.set("visible", false);
+
+                    mapInstance.geoObjects.add(route);
+
+                    const bounds = route.getBounds();
+                    if (bounds) mapInstance.setBounds(bounds, { checkZoomRange: true, zoomMargin: 50 });
+                }).catch(() => {
+                    // Route failed — just fit to both markers
+                    const bounds = mapInstance.geoObjects.getBounds();
+                    if (bounds) mapInstance.setBounds(bounds, { checkZoomRange: true, zoomMargin: 60 });
+                });
+            } else {
+                setTimeout(() => {
+                    if (!cancelled && mapInstance) {
+                        const bounds = mapInstance.geoObjects.getBounds();
+                        if (bounds) mapInstance.setBounds(bounds, { checkZoomRange: true, zoomMargin: 80 });
+                    }
+                }, 150);
+            }
+        });
+
+        return () => {
+            cancelled = true;
+            if (mapInstance) { try { mapInstance.destroy(); } catch (_) {} }
+        };
+    }, [cart.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const clientLabel = [cart.customer_first_name, cart.customer_last_name].filter(Boolean).join(" ") || cart.customer_phone || "Клиент";
+    const marketLabel = cart.market_name || "Аптека";
 
     if (!hasClient && !hasMarket) {
         return (
@@ -62,23 +149,8 @@ function MapTab({ cart }: { cart: UserCart }) {
         );
     }
 
-    const clientLabel = [cart.customer_first_name, cart.customer_last_name].filter(Boolean).join(" ") || cart.customer_phone || "Клиент";
-    const marketLabel = cart.market_name || "Аптека";
-
-    // Route from pharmacy → client (rtext uses lat,lon format)
-    // Auto-fits view to show entire route
-    let mapUrl: string;
-    if (hasClient && hasMarket) {
-        mapUrl = `https://yandex.ru/map-widget/v1/?rtt=auto&rtext=${cart.market_latitude},${cart.market_longitude}~${cart.latitude},${cart.longitude}&mode=routes`;
-    } else if (hasMarket) {
-        mapUrl = `https://yandex.ru/map-widget/v1/?ll=${cart.market_longitude},${cart.market_latitude}&z=15&pt=${cart.market_longitude},${cart.market_latitude},pm2blm`;
-    } else {
-        mapUrl = `https://yandex.ru/map-widget/v1/?ll=${cart.longitude},${cart.latitude}&z=15&pt=${cart.longitude},${cart.latitude},pm2rdm`;
-    }
-
     return (
         <div className="space-y-2">
-            {/* Legend — only names, no coordinates */}
             <div className="flex items-center gap-5 text-sm px-1">
                 {hasMarket && (
                     <span className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
@@ -95,12 +167,10 @@ function MapTab({ cart }: { cart: UserCart }) {
                     </span>
                 )}
             </div>
-            <iframe
-                src={mapUrl}
-                className="w-full rounded-lg border border-gray-200 dark:border-gray-700"
+            <div
+                ref={containerRef}
+                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
                 style={{ height: 400 }}
-                allowFullScreen
-                title="Маршрут"
             />
         </div>
     );

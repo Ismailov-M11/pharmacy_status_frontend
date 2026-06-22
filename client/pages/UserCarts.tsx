@@ -123,7 +123,7 @@ interface Filters {
     itemsMax: string;
     totalMin: string;
     totalMax: string;
-    promoCode: string;
+    promoCodes: string[];
     sources: string[];
     status: string;
 }
@@ -131,7 +131,7 @@ interface Filters {
 const EMPTY_FILTERS: Filters = {
     dateFrom: "", dateTo: "", pharmacies: [],
     itemsMin: "", itemsMax: "", totalMin: "", totalMax: "",
-    promoCode: "", sources: [], status: "all",
+    promoCodes: [], sources: [], status: "all",
 };
 
 function activeFilterCount(f: Filters): number {
@@ -140,7 +140,7 @@ function activeFilterCount(f: Filters): number {
     if (f.pharmacies.length) n++;
     if (f.itemsMin || f.itemsMax) n++;
     if (f.totalMin || f.totalMax) n++;
-    if (f.promoCode) n++;
+    if (f.promoCodes.length) n++;
     if (f.sources.length) n++;
     if (f.status && f.status !== "all") n++;
     return n;
@@ -307,6 +307,11 @@ export default function UserCarts() {
         () => [...new Set(allCarts.map((c) => c.source).filter(Boolean) as string[])].sort(),
         [allCarts]
     );
+    const allPromoCodes = useMemo(() => {
+        const codes = [...new Set(allCarts.map((c) => c.invoice_promo_code).filter(Boolean) as string[])].sort();
+        const hasNone = allCarts.some((c) => !c.invoice_promo_code);
+        return hasNone ? ["Без промокода", ...codes] : codes;
+    }, [allCarts]);
 
     // ─── Client-side filtering ─────────────────────────────────────────────────
     const filteredCarts = useMemo(() => {
@@ -332,7 +337,13 @@ export default function UserCarts() {
         if (filters.itemsMax) result = result.filter((c) => c.items.length <= Number(filters.itemsMax));
         if (filters.totalMin) result = result.filter((c) => c.invoice_total >= Number(filters.totalMin));
         if (filters.totalMax) result = result.filter((c) => c.invoice_total <= Number(filters.totalMax));
-        if (filters.promoCode.trim()) { const pc = filters.promoCode.toLowerCase(); result = result.filter((c) => (c.invoice_promo_code ?? "").toLowerCase().includes(pc)); }
+        if (filters.promoCodes.length) {
+            result = result.filter((c) => {
+                const noPromo = !c.invoice_promo_code;
+                if (noPromo) return filters.promoCodes.includes("Без промокода");
+                return filters.promoCodes.includes(c.invoice_promo_code!);
+            });
+        }
         if (filters.sources.length) result = result.filter((c) => filters.sources.includes(c.source ?? ""));
         return result;
     }, [allCarts, query, filters]);
@@ -684,8 +695,7 @@ export default function UserCarts() {
                                     </div>
                                 </FilterSection>
                                 <FilterSection title={t.promoCode || "Промокод"}>
-                                    <input type="text" placeholder="WELCOME_THREE..." value={pendingFilters.promoCode} onChange={(e) => setPendingFilters((f) => ({ ...f, promoCode: e.target.value }))}
-                                        className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400" />
+                                    <CheckList options={allPromoCodes} selected={pendingFilters.promoCodes} onChange={(v) => setPendingFilters((f) => ({ ...f, promoCodes: v }))} />
                                 </FilterSection>
                                 <FilterSection title={t.sourceLabel || "Источник"}>
                                     <CheckList options={allSources} selected={pendingFilters.sources} onChange={(v) => setPendingFilters((f) => ({ ...f, sources: v }))} />
