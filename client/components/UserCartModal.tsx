@@ -319,7 +319,17 @@ export function UserCartModal({ cart, isOpen, onClose, initialTab = "cart", t }:
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0">
+            <DialogContent
+                className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0"
+                onInteractOutside={(e: Event) => {
+                    // Yandex Maps fullscreen inserts <ymaps> directly into <body> outside Dialog DOM.
+                    // Radix treats clicks on it as "outside" and would close dialog — prevent that.
+                    const target = e.target as Element;
+                    if (target?.tagName?.toLowerCase() === "ymaps" || target?.closest?.("ymaps")) {
+                        e.preventDefault();
+                    }
+                }}
+            >
                 {/* Header */}
                 <DialogHeader className="px-6 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
                     <DialogTitle className="flex items-center gap-3 text-lg font-bold text-gray-900 dark:text-gray-100">
