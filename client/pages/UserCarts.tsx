@@ -34,6 +34,8 @@ import {
     CheckCircle,
     Clock,
     MessageSquare,
+    PhoneOff,
+    User,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -97,12 +99,20 @@ function SyncProgressBar({ progress }: { progress: { current: number; total: num
 }
 
 // ─── Status badge ──────────────────────────────────────────────────────────────
-function StatusBadge({ status, t }: { status: "unprocessed" | "processed"; t: Record<string, string> }) {
+function StatusBadge({ status, t }: { status: "unprocessed" | "processed" | "missed_call"; t: Record<string, string> }) {
     if (status === "processed") {
         return (
             <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 whitespace-nowrap">
                 <CheckCircle className="h-3 w-3" />
                 {t.processed}
+            </span>
+        );
+    }
+    if (status === "missed_call") {
+        return (
+            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 whitespace-nowrap">
+                <PhoneOff className="h-3 w-3" />
+                Недозвон
             </span>
         );
     }
@@ -126,12 +136,13 @@ interface Filters {
     promoCodes: string[];
     sources: string[];
     status: string;
+    commentUsers: string[];
 }
 
 const EMPTY_FILTERS: Filters = {
     dateFrom: "", dateTo: "", pharmacies: [],
     itemsMin: "", itemsMax: "", totalMin: "", totalMax: "",
-    promoCodes: [], sources: [], status: "all",
+    promoCodes: [], sources: [], status: "all", commentUsers: [],
 };
 
 function activeFilterCount(f: Filters): number {
@@ -143,6 +154,7 @@ function activeFilterCount(f: Filters): number {
     if (f.promoCodes.length) n++;
     if (f.sources.length) n++;
     if (f.status && f.status !== "all") n++;
+    if (f.commentUsers.length) n++;
     return n;
 }
 
@@ -312,6 +324,10 @@ export default function UserCarts() {
         const hasNone = allCarts.some((c) => !c.invoice_promo_code);
         return hasNone ? ["Без промокода", ...codes] : codes;
     }, [allCarts]);
+    const allCommentUsers = useMemo(
+        () => [...new Set(allCarts.map((c) => c.comment_by).filter(Boolean) as string[])].sort(),
+        [allCarts]
+    );
 
     // ─── Client-side filtering ─────────────────────────────────────────────────
     const filteredCarts = useMemo(() => {
@@ -345,6 +361,7 @@ export default function UserCarts() {
             });
         }
         if (filters.sources.length) result = result.filter((c) => filters.sources.includes(c.source ?? ""));
+        if (filters.commentUsers.length) result = result.filter((c) => filters.commentUsers.includes(c.comment_by ?? ""));
         return result;
     }, [allCarts, query, filters]);
 
@@ -528,6 +545,8 @@ export default function UserCarts() {
                                                     { label: t.promoCode, a: "left" },
                                                     { label: t.sourceLabel, a: "left" },
                                                     { label: t.cartStatus, a: "left" },
+                                                    { label: "Кем", a: "left" },
+                                                    { label: "Дата", a: "left" },
                                                     { label: t.comment, a: "left" },
                                                 ].map((h, i) => (
                                                     <th key={i} className={`py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap text-${h.a}`}>
@@ -574,6 +593,19 @@ export default function UserCarts() {
                                                     </td>
                                                     <td className="py-3 px-3">
                                                         <StatusBadge status={cart.cart_status} t={t as unknown as Record<string, string>} />
+                                                    </td>
+                                                    <td className="py-3 px-3 whitespace-nowrap">
+                                                        {cart.comment_by ? (
+                                                            <span className="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                                                <User className="h-3 w-3 text-purple-400 shrink-0" />
+                                                                {cart.comment_by}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-gray-300 dark:text-gray-600">—</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 px-3 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
+                                                        {cart.comment_at ? format(new Date(cart.comment_at), "dd.MM.yy HH:mm") : <span className="text-gray-300 dark:text-gray-600">—</span>}
                                                     </td>
                                                     <td className="py-3 px-3 max-w-[180px]">
                                                         <button
@@ -700,6 +732,11 @@ export default function UserCarts() {
                                 <FilterSection title={t.sourceLabel || "Источник"}>
                                     <CheckList options={allSources} selected={pendingFilters.sources} onChange={(v) => setPendingFilters((f) => ({ ...f, sources: v }))} />
                                 </FilterSection>
+                                {allCommentUsers.length > 0 && (
+                                    <FilterSection title="Пользователь">
+                                        <CheckList options={allCommentUsers} selected={pendingFilters.commentUsers} onChange={(v) => setPendingFilters((f) => ({ ...f, commentUsers: v }))} searchable />
+                                    </FilterSection>
+                                )}
                             </div>
                         </div>
                     </div>

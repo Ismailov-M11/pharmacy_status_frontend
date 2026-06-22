@@ -53,7 +53,7 @@ export interface UserCart {
   latitude: number | null;
   longitude: number | null;
 
-  cart_status: "unprocessed" | "processed";
+  cart_status: "unprocessed" | "processed" | "missed_call";
   comment: string | null;
   comment_by: string | null;
   comment_at: string | null;
@@ -100,6 +100,7 @@ export interface CartSyncStatus {
 export interface CartFilterOptions {
   pharmacies: string[];
   sources: string[];
+  commentUsers: string[];
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -188,12 +189,13 @@ export async function addCartComment(
   token: string,
   cartId: number,
   text: string,
-  createdBy: string
+  createdBy: string,
+  status: string
 ): Promise<CartComment> {
   const res = await fetch(`${BASE}/${cartId}/comments`, {
     method: "POST",
     headers: authHeader(token),
-    body: JSON.stringify({ text, createdBy }),
+    body: JSON.stringify({ text, createdBy, status }),
   });
   return handleResponse<CartComment>(res);
 }

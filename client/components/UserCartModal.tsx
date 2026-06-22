@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import {
     User, Store, Tag, MapPin, Phone, Package, ShoppingCart,
-    CheckCircle, Clock, MessageSquare, Loader2, Send, Map,
+    CheckCircle, Clock, MessageSquare, Loader2, Send, Map, PhoneOff,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -205,6 +205,13 @@ function MapTab({ cart }: { cart: UserCart }) {
     );
 }
 
+// ─── Status options for comment form ──────────────────────────────────────────
+const COMMENT_STATUSES = [
+    { value: "unprocessed", label: "Не обработан", icon: Clock, cls: "border-yellow-300 bg-yellow-50 text-yellow-700 dark:border-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" },
+    { value: "missed_call", label: "Недозвон",     icon: PhoneOff, cls: "border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
+    { value: "processed",   label: "Обработан",    icon: CheckCircle, cls: "border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-900/30 dark:text-green-400" },
+] as const;
+
 // ─── Comments tab ─────────────────────────────────────────────────────────────
 function CommentsTab({ cart, token, username }: {
     cart: UserCart;
@@ -214,6 +221,7 @@ function CommentsTab({ cart, token, username }: {
     const [comments, setComments] = useState<CartComment[]>([]);
     const [loading, setLoading] = useState(true);
     const [text, setText] = useState("");
+    const [selectedStatus, setSelectedStatus] = useState<string>("");
     const [saving, setSaving] = useState(false);
     const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -231,12 +239,13 @@ function CommentsTab({ cart, token, username }: {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [comments]);
 
+    const canSend = text.trim().length > 0 && selectedStatus !== "";
+
     const handleSend = async () => {
-        const trimmed = text.trim();
-        if (!trimmed) return;
+        if (!canSend) return;
         setSaving(true);
         try {
-            const added = await addCartComment(token, cart.id, trimmed, username);
+            const added = await addCartComment(token, cart.id, text.trim(), username, selectedStatus);
             setComments((prev) => [...prev, added]);
             setText("");
             toast.success("Комментарий добавлен");
@@ -254,7 +263,7 @@ function CommentsTab({ cart, token, username }: {
     return (
         <div className="flex flex-col gap-4">
             {/* History */}
-            <div className="flex flex-col gap-2 max-h-[320px] overflow-y-auto pr-1">
+            <div className="flex flex-col gap-2 max-h-[260px] overflow-y-auto pr-1">
                 {loading ? (
                     <div className="flex justify-center py-8">
                         <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
@@ -281,7 +290,31 @@ function CommentsTab({ cart, token, username }: {
             </div>
 
             {/* Input */}
-            <div className="border-t border-gray-100 dark:border-gray-800 pt-3">
+            <div className="border-t border-gray-100 dark:border-gray-800 pt-3 flex flex-col gap-2">
+                {/* Status selector */}
+                <div className="flex flex-col gap-1.5">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Статус <span className="text-red-400">*</span>
+                    </span>
+                    <div className="flex gap-2 flex-wrap">
+                        {COMMENT_STATUSES.map(({ value, label, icon: Icon, cls }) => (
+                            <button
+                                key={value}
+                                type="button"
+                                onClick={() => setSelectedStatus(value === selectedStatus ? "" : value)}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                                    selectedStatus === value
+                                        ? cls + " ring-2 ring-offset-1 ring-current"
+                                        : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-300"
+                                }`}
+                            >
+                                <Icon className="h-3.5 w-3.5" />
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
                 <textarea
                     value={text}
                     onChange={(e) => setText(e.target.value)}
@@ -290,11 +323,16 @@ function CommentsTab({ cart, token, username }: {
                     placeholder="Введите комментарий... (Ctrl+Enter для отправки)"
                     className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400 resize-none"
                 />
-                <div className="flex justify-end mt-2">
-                    <Button onClick={handleSend} disabled={saving || !text.trim()} size="sm" className="gap-1.5">
-                        {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                        Отправить
-                    </Button>
+                <div className="flex items-center justify-between">
+                    {!selectedStatus && text.trim() && (
+                        <span className="text-xs text-red-400">Выберите статус перед отправкой</span>
+                    )}
+                    <div className="ml-auto">
+                        <Button onClick={handleSend} disabled={saving || !canSend} size="sm" className="gap-1.5">
+                            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                            Отправить
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>
