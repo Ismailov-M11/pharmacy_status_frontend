@@ -41,12 +41,10 @@ import {
     getCartSyncStatus,
     triggerCartSync,
     getCartStatuses,
-    getOrderSyncStatus,
     triggerOrderSync,
     UserCart,
     CartStatus,
     CartSyncStatus,
-    OrderSyncState,
 } from "@/lib/userCartApi";
 import { statusBadgeClasses } from "@/components/UserCartModal";
 
@@ -69,6 +67,7 @@ function getPhaseLabel(phase: string): string {
         case "collecting": return "Сбор данных из API...";
         case "syncing":    return "Загрузка страниц...";
         case "saving":     return "Сохранение в базу...";
+        case "orders":     return "Проверка статусов заказов...";
         case "done":       return "Завершено";
         case "error":      return "Ошибка синхронизации";
         default:           return "Подготовка...";
@@ -231,10 +230,6 @@ export default function UserCarts() {
     const [syncStatus, setSyncStatus] = useState<CartSyncStatus | null>(null);
     const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, percent: 0, phase: "" });
     const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const [orderSyncState, setOrderSyncState] = useState<OrderSyncState | null>(null);
-    const [isOrderSyncing, setIsOrderSyncing] = useState(false);
-    const [orderSyncCooldown, setOrderSyncCooldown] = useState(0);
-    const orderCooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const [page, setPage] = useState(0);
     const [query, setQuery] = useState("");
     const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -277,14 +272,10 @@ export default function UserCarts() {
             loadCarts();
             loadSyncStatus();
             getCartStatuses(token).then(setCartStatuses).catch(() => {});
-            getOrderSyncStatus(token).then(setOrderSyncState).catch(() => {});
         }
     }, [authLoading, isAuthenticated, loadCarts, loadSyncStatus, token]);
 
-    // Cleanup order sync cooldown on unmount
-    useEffect(() => () => { if (orderCooldownRef.current) clearInterval(orderCooldownRef.current); }, []);
-
-    // ─── Sync polling (like OsonList) ──────────────────────────────────────────
+    // ─── Sync polling: phase 1 drafts → phase 2 orders ────────────────────────
     useEffect(() => {
         if (isSyncing) {
             pollingRef.current = setInterval(async () => {
@@ -294,20 +285,43 @@ export default function UserCarts() {
                     setSyncStatus(s);
                     if (s.progress) setSyncProgress(s.progress);
                     if (!s.isSyncing) {
-                        setIsSyncing(false);
                         clearInterval(pollingRef.current!);
-                        toast.success("Данные корзин успешно обновлены!");
-                        loadCarts();
+
+                        // Phase 2: order status sync
+                        setSyncProgress({ current: 1, total: 1, percent: 95, phase: "orders" });
+                        let orderResult = null;
+                        try {
+                            orderResult = await triggerOrderSync(token);
+                        } catch {
+                            // order sync failure is non-critical
+                        }
+
+                        // Reload once after both phases complete
+                        await loadCarts();
+                        loadSyncStatus();
+
+                        setIsSyncing(false);
+                        setSyncProgress({ current: 0, total: 0, percent: 0, phase: "" });
+
+                        if (orderResult) {
+                            toast.success(
+                                `Синхронизация завершена. Проверено заказов: ${orderResult.checked}` +
+                                (orderResult.delivered > 0 ? `, доставлено: ${orderResult.delivered}` : "") +
+                                (orderResult.cancelled > 0 ? `, отменено: ${orderResult.cancelled}` : "")
+                            );
+                        } else {
+                            toast.success("Данные корзин успешно обновлены!");
+                        }
                     }
                 } catch {
-                    // ignore
+                    // ignore polling errors
                 }
             }, 3000);
         }
         return () => {
             if (pollingRef.current) clearInterval(pollingRef.current);
         };
-    }, [isSyncing, token, loadCarts]);
+    }, [isSyncing, token, loadCarts, loadSyncStatus]);
 
     // ─── Trigger sync ──────────────────────────────────────────────────────────
     const handleSync = async () => {
@@ -321,30 +335,6 @@ export default function UserCarts() {
             toast.info("Синхронизация запущена. Подождите несколько минут...");
         } catch (err: unknown) {
             toast.error(err instanceof Error ? err.message : "Не удалось запустить синхронизацию");
-        }
-    };
-
-    // ─── Order sync ────────────────────────────────────────────────────────────
-    const handleOrderSync = async () => {
-        if (!token || isOrderSyncing || orderSyncCooldown > 0) return;
-        setIsOrderSyncing(true);
-        try {
-            const result = await triggerOrderSync(token);
-            setOrderSyncState((prev) => prev ? { ...prev, lastSyncAt: new Date().toISOString(), lastSyncResult: result } : null);
-            toast.success(`Проверено ${result.checked} корзин. Доставлено: ${result.delivered}, Отменено: ${result.cancelled}`);
-            if (result.delivered > 0 || result.cancelled > 0) loadCarts();
-        } catch (err: unknown) {
-            toast.error(err instanceof Error ? err.message : "Ошибка проверки статусов заказов");
-        } finally {
-            setIsOrderSyncing(false);
-            // Start 60-second cooldown
-            setOrderSyncCooldown(60);
-            orderCooldownRef.current = setInterval(() => {
-                setOrderSyncCooldown((prev) => {
-                    if (prev <= 1) { clearInterval(orderCooldownRef.current!); return 0; }
-                    return prev - 1;
-                });
-            }, 1000);
         }
     };
 
@@ -531,19 +521,6 @@ export default function UserCarts() {
                         >
                             <RefreshCw className={`h-4 w-4 ${isSyncing || syncStatus?.isSyncing ? "animate-spin" : ""}`} />
                             <span className="hidden sm:inline">{t.syncNow}</span>
-                        </Button>
-                        <Button
-                            onClick={handleOrderSync}
-                            disabled={isOrderSyncing || orderSyncCooldown > 0}
-                            variant="outline"
-                            size="sm"
-                            className="gap-1.5 border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
-                            title={orderSyncState?.lastSyncAt ? `Последняя проверка: ${format(new Date(orderSyncState.lastSyncAt), "dd.MM.yyyy HH:mm")}` : "Проверить статусы заказов"}
-                        >
-                            <RefreshCw className={`h-4 w-4 ${isOrderSyncing ? "animate-spin" : ""}`} />
-                            <span className="hidden sm:inline">
-                                {isOrderSyncing ? "Проверка..." : orderSyncCooldown > 0 ? `${orderSyncCooldown}с` : "Статусы заказов"}
-                            </span>
                         </Button>
                     </div>
                 </div>
