@@ -51,88 +51,94 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 // ─── Map tab ──────────────────────────────────────────────────────────────────
 function MapTab({ cart }: { cart: UserCart }) {
     const containerRef = useRef<HTMLDivElement>(null);
+    const mapRef = useRef<any>(null);
+    const initializedRef = useRef(false);
 
     const hasClient = cart.latitude != null && cart.longitude != null;
     const hasMarket = cart.market_latitude != null && cart.market_longitude != null;
 
-    useEffect(() => {
-        const el = containerRef.current;
-        if (!el || (!hasClient && !hasMarket)) return;
+    const initMap = () => {
+        if (!containerRef.current || initializedRef.current) return;
+        try {
+            const defaultCenter: [number, number] = hasMarket
+                ? [cart.market_latitude!, cart.market_longitude!]
+                : [cart.latitude!, cart.longitude!];
 
-        const ymaps = (window as any).ymaps;
-        if (!ymaps || typeof ymaps.ready !== "function") return;
+            mapRef.current = new window.ymaps.Map(containerRef.current, {
+                center: defaultCenter,
+                zoom: 13,
+                controls: ["zoomControl"],
+            }, { suppressMapOpenBlock: true });
+            initializedRef.current = true;
 
-        let cancelled = false;
-        let mapInstance: any = null;
+            if (hasMarket) {
+                mapRef.current.geoObjects.add(new window.ymaps.Placemark(
+                    [cart.market_latitude!, cart.market_longitude!],
+                    {},
+                    { preset: "islands#blueCircleDotIcon" }
+                ));
+            }
+            if (hasClient) {
+                mapRef.current.geoObjects.add(new window.ymaps.Placemark(
+                    [cart.latitude!, cart.longitude!],
+                    {},
+                    { preset: "islands#redCircleDotIcon" }
+                ));
+            }
 
-        // Wait for dialog animation so container has real pixel dimensions
-        const initTimer = setTimeout(() => {
-            ymaps.ready(() => {
-                if (cancelled || !el) return;
-
-                const defaultCenter: [number, number] = hasMarket
-                    ? [cart.market_latitude!, cart.market_longitude!]
-                    : [cart.latitude!, cart.longitude!];
-
-                mapInstance = new ymaps.Map(el, {
-                    center: defaultCenter,
-                    zoom: 13,
-                    controls: ["zoomControl"],
-                }, { suppressMapOpenBlock: true });
-
-                mapInstance.container.fitToViewport();
-
-                if (hasMarket) {
-                    mapInstance.geoObjects.add(new ymaps.Placemark(
-                        [cart.market_latitude!, cart.market_longitude!],
-                        {},
-                        { preset: "islands#blueCircleDotIcon" }
-                    ));
-                }
-
-                if (hasClient) {
-                    mapInstance.geoObjects.add(new ymaps.Placemark(
-                        [cart.latitude!, cart.longitude!],
-                        {},
-                        { preset: "islands#redCircleDotIcon" }
-                    ));
-                }
-
-                if (hasClient && hasMarket) {
-                    ymaps.route(
-                        [[cart.market_latitude!, cart.market_longitude!], [cart.latitude!, cart.longitude!]],
-                        { mapStateAutoApply: false, routingMode: "auto" }
-                    ).then((route: any) => {
-                        if (cancelled || !mapInstance) return;
-                        route.getPaths().options.set({
-                            strokeColor: "6366f1",
-                            strokeWidth: 4,
-                            opacity: 0.8,
-                            openBalloonOnClick: false,
-                        });
-                        route.getWayPoints().options.set("visible", false);
-                        mapInstance.geoObjects.add(route);
-                        const bounds = route.getBounds();
-                        if (bounds) mapInstance.setBounds(bounds, { checkZoomRange: true, zoomMargin: 50 });
-                    }).catch(() => {
-                        const bounds = mapInstance?.geoObjects.getBounds();
-                        if (bounds) mapInstance.setBounds(bounds, { checkZoomRange: true, zoomMargin: 60 });
+            if (hasClient && hasMarket) {
+                window.ymaps.route(
+                    [[cart.market_latitude!, cart.market_longitude!], [cart.latitude!, cart.longitude!]],
+                    { mapStateAutoApply: false, routingMode: "auto" }
+                ).then((route: any) => {
+                    if (!mapRef.current) return;
+                    route.getPaths().options.set({
+                        strokeColor: "6366f1",
+                        strokeWidth: 4,
+                        opacity: 0.8,
+                        openBalloonOnClick: false,
                     });
-                } else {
-                    setTimeout(() => {
-                        if (!cancelled && mapInstance) {
-                            const bounds = mapInstance.geoObjects.getBounds();
-                            if (bounds) mapInstance.setBounds(bounds, { checkZoomRange: true, zoomMargin: 80 });
-                        }
-                    }, 150);
-                }
-            });
-        }, 300);
+                    route.getWayPoints().options.set("visible", false);
+                    mapRef.current.geoObjects.add(route);
+                    const bounds = route.getBounds();
+                    if (bounds) mapRef.current.setBounds(bounds, { checkZoomRange: true, zoomMargin: 50 });
+                }).catch(() => {
+                    const bounds = mapRef.current?.geoObjects.getBounds();
+                    if (bounds) mapRef.current.setBounds(bounds, { checkZoomRange: true, zoomMargin: 60 });
+                });
+            }
+
+            // Redraw after dialog animation finishes
+            setTimeout(() => {
+                if (mapRef.current) mapRef.current.container.fitToViewport();
+            }, 200);
+        } catch (err) {
+            console.error("MapTab init error:", err);
+        }
+    };
+
+    useEffect(() => {
+        if (!hasClient && !hasMarket) return;
+
+        // Reuse already-loaded script (same id as OsonList)
+        const existing = document.getElementById("yandex-maps-script");
+        if (existing) {
+            if (window.ymaps) window.ymaps.ready(initMap);
+            return;
+        }
+
+        const script = document.createElement("script");
+        script.id = "yandex-maps-script";
+        script.src = `https://api-maps.yandex.ru/2.1/?apikey=${(import.meta as any).env?.VITE_YANDEX_MAP_KEY ?? ""}&lang=ru_RU`;
+        script.async = true;
+        script.onload = () => {
+            if (window.ymaps) window.ymaps.ready(initMap);
+        };
+        document.head.appendChild(script);
 
         return () => {
-            cancelled = true;
-            clearTimeout(initTimer);
-            if (mapInstance) { try { mapInstance.destroy(); } catch (_) {} }
+            if (mapRef.current) { try { mapRef.current.destroy(); } catch (_) {} mapRef.current = null; }
+            initializedRef.current = false;
         };
     }, [cart.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
