@@ -406,12 +406,12 @@ export function UserCartModal({ cart, isOpen, onClose, initialTab = "cart", t }:
                                                                 <img
                                                                     src={item.imageUrl}
                                                                     alt={item.name}
-                                                                    className="w-10 h-10 rounded-md object-contain border border-gray-100 dark:border-gray-700 bg-white shrink-0"
+                                                                    className="w-24 h-24 rounded-xl object-contain border border-gray-100 dark:border-gray-700 bg-white shrink-0 p-1"
                                                                     onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                                                                 />
                                                             ) : (
-                                                                <div className="w-10 h-10 rounded-md bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
-                                                                    <Package className="h-4 w-4 text-gray-300 dark:text-gray-600" />
+                                                                <div className="w-24 h-24 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                                                                    <Package className="h-8 w-8 text-gray-300 dark:text-gray-600" />
                                                                 </div>
                                                             )}
                                                             <div>
