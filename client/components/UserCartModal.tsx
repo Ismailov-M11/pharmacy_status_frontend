@@ -322,17 +322,25 @@ function CommentsTab({ cart, token, username, statuses, isAdmin, onStatusCreated
                         <p>Комментариев пока нет</p>
                     </div>
                 ) : (
-                    comments.map((c) => (
-                        <div key={c.id} className="bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-3 border border-gray-100 dark:border-gray-700">
-                            <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">{c.text}</p>
-                            <div className="flex items-center gap-2 mt-2 text-xs text-gray-400 dark:text-gray-500">
-                                <User className="h-3 w-3 shrink-0" />
-                                <span className="font-medium text-gray-500 dark:text-gray-400">{c.created_by}</span>
-                                <span>·</span>
-                                <span>{format(new Date(c.created_at), "dd.MM.yyyy HH:mm")}</span>
+                    comments.map((c) => {
+                        const s = c.status ? statuses.find((x: CartStatus) => x.value === c.status) : null;
+                        return (
+                            <div key={c.id} className="bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-3 border border-gray-100 dark:border-gray-700">
+                                {s && (
+                                    <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full mb-2 ${statusBadgeClasses(s.color)}`}>
+                                        {s.label}
+                                    </span>
+                                )}
+                                <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">{c.text}</p>
+                                <div className="flex items-center gap-2 mt-2 text-xs text-gray-400 dark:text-gray-500">
+                                    <User className="h-3 w-3 shrink-0" />
+                                    <span className="font-medium text-gray-500 dark:text-gray-400">{c.created_by}</span>
+                                    <span>·</span>
+                                    <span>{format(new Date(c.created_at), "dd.MM.yyyy HH:mm")}</span>
+                                </div>
                             </div>
-                        </div>
-                    ))
+                        );
+                    })
                 )}
                 <div ref={bottomRef} />
             </div>

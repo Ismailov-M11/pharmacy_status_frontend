@@ -123,12 +123,16 @@ interface Filters {
     sources: string[];
     status: string;
     commentUsers: string[];
+    historyStatuses: string[];
+    historyDateFrom: string;
+    historyDateTo: string;
 }
 
 const EMPTY_FILTERS: Filters = {
     dateFrom: "", dateTo: "", pharmacies: [],
     itemsMin: "", itemsMax: "", totalMin: "", totalMax: "",
     promoCodes: [], sources: [], status: "all", commentUsers: [],
+    historyStatuses: [], historyDateFrom: "", historyDateTo: "",
 };
 
 function activeFilterCount(f: Filters): number {
@@ -141,6 +145,7 @@ function activeFilterCount(f: Filters): number {
     if (f.sources.length) n++;
     if (f.status && f.status !== "all") n++;
     if (f.commentUsers.length) n++;
+    if (f.historyStatuses.length) n++;
     return n;
 }
 
@@ -214,11 +219,11 @@ export default function UserCarts() {
         if (!isAuthenticated) navigate("/login");
     }, [authLoading, isAuthenticated, navigate]);
 
-    const loadCarts = useCallback(async () => {
+    const loadCarts = useCallback(async (historyFilters?: { historyStatuses?: string[]; historyDateFrom?: string; historyDateTo?: string }) => {
         if (!token) return;
         setIsLoading(true);
         try {
-            const res = await getUserCarts(token);
+            const res = await getUserCarts(token, historyFilters ?? {});
             setAllCarts(res.data);
         } catch {
             toast.error(t.dataLoadError || "Ошибка при загрузке данных");
@@ -360,8 +365,30 @@ export default function UserCarts() {
 
     const totalPages = Math.ceil(filteredCarts.length / PAGE_SIZE);
     const pageCarts = filteredCarts.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-    const applyFilters = () => { setFilters(pendingFilters); setPage(0); setFilterOpen(false); };
-    const resetFilters = () => { setPendingFilters(EMPTY_FILTERS); setFilters(EMPTY_FILTERS); setPage(0); };
+    const applyFilters = () => {
+        setFilters(pendingFilters);
+        setPage(0);
+        setFilterOpen(false);
+        const historyChanged =
+            JSON.stringify(pendingFilters.historyStatuses) !== JSON.stringify(filters.historyStatuses) ||
+            pendingFilters.historyDateFrom !== filters.historyDateFrom ||
+            pendingFilters.historyDateTo !== filters.historyDateTo;
+        if (historyChanged) {
+            loadCarts({
+                historyStatuses: pendingFilters.historyStatuses,
+                historyDateFrom: pendingFilters.historyDateFrom,
+                historyDateTo: pendingFilters.historyDateTo,
+            });
+        }
+    };
+    const resetFilters = () => {
+        setPendingFilters(EMPTY_FILTERS);
+        setFilters(EMPTY_FILTERS);
+        setPage(0);
+        if (filters.historyStatuses.length || filters.historyDateFrom || filters.historyDateTo) {
+            loadCarts({});
+        }
+    };
     const activeCount = activeFilterCount(filters);
     const stats = syncStatus?.stats;
     const lastSync = syncStatus?.lastSyncAt || stats?.lastSyncedAt;
@@ -685,8 +712,9 @@ export default function UserCarts() {
                                     <select value={pendingFilters.status} onChange={(e) => setPendingFilters((f) => ({ ...f, status: e.target.value }))}
                                         className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400">
                                         <option value="all">{t.allStatuses}</option>
-                                        <option value="unprocessed">{t.unprocessed}</option>
-                                        <option value="processed">{t.processed}</option>
+                                        {cartStatuses.map((s) => (
+                                            <option key={s.value} value={s.value}>{s.label}</option>
+                                        ))}
                                     </select>
                                 </div>
                             </div>
@@ -727,6 +755,34 @@ export default function UserCarts() {
                                 )}
                             </div>
                         </div>
+
+                        {/* ─── History filter ─────────────────────────────── */}
+                        {cartStatuses.length > 0 && (
+                            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
+                                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 px-1">История статусов</p>
+                                <div className="grid grid-cols-1 gap-4">
+                                    <FilterSection title="Статус в истории">
+                                        <CheckList
+                                            options={cartStatuses.map((s) => s.label)}
+                                            selected={pendingFilters.historyStatuses.map((v) => cartStatuses.find((s) => s.value === v)?.label ?? v)}
+                                            onChange={(labels) => {
+                                                const values = labels.map((l) => cartStatuses.find((s) => s.label === l)?.value ?? l);
+                                                setPendingFilters((f) => ({ ...f, historyStatuses: values }));
+                                            }}
+                                        />
+                                    </FilterSection>
+                                    <FilterSection title="Период истории">
+                                        <div className="flex items-center gap-2">
+                                            <input type="date" value={pendingFilters.historyDateFrom} onChange={(e) => setPendingFilters((f) => ({ ...f, historyDateFrom: e.target.value }))}
+                                                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400" />
+                                            <span className="text-gray-400 shrink-0">—</span>
+                                            <input type="date" value={pendingFilters.historyDateTo} onChange={(e) => setPendingFilters((f) => ({ ...f, historyDateTo: e.target.value }))}
+                                                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400" />
+                                        </div>
+                                    </FilterSection>
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex gap-2 shrink-0">
                         <Button onClick={applyFilters} className="flex-1">{t.apply}</Button>

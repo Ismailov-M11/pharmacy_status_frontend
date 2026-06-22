@@ -72,6 +72,9 @@ export interface CartFilters {
   totalMin?: string;
   totalMax?: string;
   promoCode?: string;
+  historyStatuses?: string[];
+  historyDateFrom?: string;
+  historyDateTo?: string;
 }
 
 export interface CartDataResponse {
@@ -132,6 +135,9 @@ export async function getUserCarts(token: string, filters: CartFilters = {}): Pr
   if (filters.totalMin) params.set("totalMin", filters.totalMin);
   if (filters.totalMax) params.set("totalMax", filters.totalMax);
   if (filters.promoCode) params.set("promoCode", filters.promoCode);
+  if (filters.historyStatuses?.length) params.set("historyStatuses", filters.historyStatuses.join(","));
+  if (filters.historyDateFrom) params.set("historyDateFrom", filters.historyDateFrom);
+  if (filters.historyDateTo) params.set("historyDateTo", filters.historyDateTo);
   params.set("size", "0"); // load all, do client-side pagination
 
   const res = await fetch(`${BASE}/data?${params}`, { headers: authHeader(token) });
@@ -203,6 +209,7 @@ export interface CartComment {
   text: string;
   created_by: string;
   created_at: string;
+  status?: string;
 }
 
 export async function getCartComments(token: string, cartId: number): Promise<CartComment[]> {
