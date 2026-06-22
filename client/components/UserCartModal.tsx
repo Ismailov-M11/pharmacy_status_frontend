@@ -114,14 +114,22 @@ function MapTab({ cart }: { cart: UserCart }) {
                 if (mapRef.current) mapRef.current.container.fitToViewport();
             }, 200);
 
-            // Fix: fullscreen changes container size → recalc event coords
-            const onFullscreen = () => {
+            // Root cause: ymaps sets body { pointer-events: none } on fullscreen but does NOT
+            // set pointer-events: auto on the <ymaps> element it appends to body.
+            // Radix Dialog overlay (pointer-events: auto, z-50) then captures all clicks.
+            // Fix: force pointer-events: auto on <ymaps> whenever fullscreen is entered.
+            mapRef.current.container.events.add("fullscreenenter", () => {
+                setTimeout(() => {
+                    const ymapsEl = document.querySelector("body > ymaps") as HTMLElement | null;
+                    if (ymapsEl) ymapsEl.style.pointerEvents = "auto";
+                    if (mapRef.current) mapRef.current.container.fitToViewport();
+                }, 50);
+            });
+            mapRef.current.container.events.add("fullscreenexit", () => {
                 setTimeout(() => {
                     if (mapRef.current) mapRef.current.container.fitToViewport();
                 }, 50);
-            };
-            document.addEventListener("fullscreenchange", onFullscreen);
-            (mapRef.current as any)._fullscreenListener = onFullscreen;
+            });
         } catch (err) {
             console.error("MapTab init error:", err);
         }
@@ -148,8 +156,6 @@ function MapTab({ cart }: { cart: UserCart }) {
 
         return () => {
             if (mapRef.current) {
-                const listener = (mapRef.current as any)._fullscreenListener;
-                if (listener) document.removeEventListener("fullscreenchange", listener);
                 try { mapRef.current.destroy(); } catch (_) {}
                 mapRef.current = null;
             }
