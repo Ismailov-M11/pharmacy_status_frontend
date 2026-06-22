@@ -170,27 +170,43 @@ export function UserCartModal({ cart, isOpen, onClose, onUpdateComment, t }: Use
 
                     {/* Invoice */}
                     <Section icon={<Tag className="h-4 w-4" />} title={t.grandTotal}>
-                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-4 py-1">
-                            <InfoRow label={t.marketTotal} value={`${formatSum(cart.invoice_market_total)} ${t.sum}`} />
-                            <InfoRow label={t.deliveryFee} value={`${formatSum(cart.invoice_delivery_total)} ${t.sum}`} />
-                            <InfoRow label={t.serviceFee} value={
-                                <span className="text-gray-500 dark:text-gray-400">{formatSum(cart.invoice_service_total)} {t.sum}</span>
-                            } />
-                            {cart.invoice_promo_code && (
-                                <InfoRow label={t.promoCode} value={
-                                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400">
-                                        <Tag className="h-2.5 w-2.5" />
-                                        {cart.invoice_promo_code}
-                                    </span>
-                                } />
-                            )}
-                            <div className="flex items-center justify-between py-2 mt-1 border-t border-gray-200 dark:border-gray-700">
-                                <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{t.grandTotal}</span>
-                                <span className="font-bold text-lg text-purple-600 dark:text-purple-400">
-                                    {formatSum(cart.invoice_total)} {t.sum}
-                                </span>
-                            </div>
-                        </div>
+                        {(() => {
+                            const subtotal = cart.invoice_market_total + cart.invoice_delivery_total + cart.invoice_service_total;
+                            const discount = subtotal - cart.invoice_total;
+                            return (
+                                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-4 py-1">
+                                    <InfoRow label={t.marketTotal} value={`${formatSum(cart.invoice_market_total)} ${t.sum}`} />
+                                    <InfoRow label={t.deliveryFee} value={`${formatSum(cart.invoice_delivery_total)} ${t.sum}`} />
+                                    <InfoRow label={t.serviceFee} value={
+                                        <span className="text-gray-500 dark:text-gray-400">{formatSum(cart.invoice_service_total)} {t.sum}</span>
+                                    } />
+                                    {cart.invoice_promo_code && (
+                                        <InfoRow label={t.promoCode} value={
+                                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400">
+                                                <Tag className="h-2.5 w-2.5" />
+                                                {cart.invoice_promo_code}
+                                            </span>
+                                        } />
+                                    )}
+                                    {discount > 0 && (
+                                        <InfoRow
+                                            label="Скидка"
+                                            value={
+                                                <span className="text-green-600 dark:text-green-400 font-semibold">
+                                                    − {formatSum(discount)} {t.sum}
+                                                </span>
+                                            }
+                                        />
+                                    )}
+                                    <div className="flex items-center justify-between py-2 mt-1 border-t border-gray-200 dark:border-gray-700">
+                                        <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{t.grandTotal}</span>
+                                        <span className="font-bold text-lg text-purple-600 dark:text-purple-400">
+                                            {formatSum(cart.invoice_total)} {t.sum}
+                                        </span>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </Section>
 
                     {/* Comment */}
