@@ -65,11 +65,7 @@ export interface DraftOrder {
     distance: number | null;
 }
 
-export async function fetchDraftOrders(
-    token: string,
-    page: number = 0,
-    size: number = 50
-): Promise<{ list: DraftOrder[]; total: number }> {
+async function doFetch(token: string, page: number, size: number): Promise<{ list: DraftOrder[]; total: number }> {
     const response = await fetch(`${API_BASE_URL}/order/draft/list`, {
         method: "POST",
         headers: {
@@ -79,10 +75,24 @@ export async function fetchDraftOrders(
         body: JSON.stringify({ page, size }),
     });
 
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
     const data = await response.json();
     return data.payload;
+}
+
+export async function fetchDraftOrders(
+    token: string,
+    page: number = 0,
+    size: number = 50
+): Promise<{ list: DraftOrder[]; total: number }> {
+    return doFetch(token, page, size);
+}
+
+export async function fetchAllDraftOrders(token: string): Promise<DraftOrder[]> {
+    const first = await doFetch(token, 0, 50);
+    if (first.total <= 50) return first.list;
+
+    const rest = await doFetch(token, 0, first.total);
+    return rest.list;
 }
