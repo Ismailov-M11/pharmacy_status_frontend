@@ -168,3 +168,32 @@ export async function getCartFilterOptions(token: string): Promise<CartFilterOpt
   const res = await fetch(`${BASE}/filter-options`, { headers: authHeader(token) });
   return handleResponse<CartFilterOptions>(res);
 }
+
+// ─── Comment history ───────────────────────────────────────────────────────────
+
+export interface CartComment {
+  id: number;
+  cart_id: number;
+  text: string;
+  created_by: string;
+  created_at: string;
+}
+
+export async function getCartComments(token: string, cartId: number): Promise<CartComment[]> {
+  const res = await fetch(`${BASE}/${cartId}/comments`, { headers: authHeader(token) });
+  return handleResponse<CartComment[]>(res);
+}
+
+export async function addCartComment(
+  token: string,
+  cartId: number,
+  text: string,
+  createdBy: string
+): Promise<CartComment> {
+  const res = await fetch(`${BASE}/${cartId}/comments`, {
+    method: "POST",
+    headers: authHeader(token),
+    body: JSON.stringify({ text, createdBy }),
+  });
+  return handleResponse<CartComment>(res);
+}

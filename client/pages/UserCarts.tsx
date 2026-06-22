@@ -41,7 +41,6 @@ import {
     getUserCarts,
     getCartSyncStatus,
     triggerCartSync,
-    updateCartComment,
     UserCart,
     CartSyncStatus,
 } from "@/lib/userCartApi";
@@ -192,7 +191,7 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function UserCarts() {
-    const { isAuthenticated, isLoading: authLoading, token, user } = useAuth();
+    const { isAuthenticated, isLoading: authLoading, token } = useAuth();
     const { t } = useLanguage();
     const navigate = useNavigate();
 
@@ -209,6 +208,7 @@ export default function UserCarts() {
     const [pendingFilters, setPendingFilters] = useState<Filters>(EMPTY_FILTERS);
     const [filterOpen, setFilterOpen] = useState(false);
     const [selectedCart, setSelectedCart] = useState<UserCart | null>(null);
+    const [selectedCartTab, setSelectedCartTab] = useState<"cart" | "map" | "comments">("cart");
 
     useEffect(() => {
         if (authLoading) return;
@@ -286,17 +286,16 @@ export default function UserCarts() {
         }
     };
 
-    const handleCommentSaved = (updated: UserCart) => {
-        setAllCarts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-        if (selectedCart?.id === updated.id) setSelectedCart(updated);
-        loadSyncStatus();
+    const openCart = (cart: UserCart, tab: "cart" | "map" | "comments" = "cart") => {
+        setSelectedCart(cart);
+        setSelectedCartTab(tab);
     };
 
-    const handleUpdateComment = async (cartId: number, comment: string): Promise<UserCart> => {
-        if (!token) throw new Error("No token");
-        const updated = await updateCartComment(token, cartId, comment, user?.username ?? "");
-        handleCommentSaved(updated);
-        return updated;
+    const closeCart = () => {
+        setSelectedCart(null);
+        // Reload to reflect status changes (processed/unprocessed) after comments
+        loadCarts();
+        loadSyncStatus();
     };
 
     // ─── Derived filter options ────────────────────────────────────────────────
@@ -531,7 +530,7 @@ export default function UserCarts() {
                                                 <tr key={cart.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors">
                                                     <td className="py-3 px-3 text-gray-500 dark:text-gray-400">{page * PAGE_SIZE + idx + 1}</td>
                                                     <td className="py-3 px-3">
-                                                        <button onClick={() => setSelectedCart(cart)} className="font-medium text-purple-700 dark:text-purple-400 hover:underline whitespace-nowrap">
+                                                        <button onClick={() => openCart(cart, "cart")} className="font-medium text-purple-700 dark:text-purple-400 hover:underline whitespace-nowrap">
                                                             #{cart.id}
                                                         </button>
                                                     </td>
@@ -566,14 +565,23 @@ export default function UserCarts() {
                                                         <StatusBadge status={cart.cart_status} t={t as unknown as Record<string, string>} />
                                                     </td>
                                                     <td className="py-3 px-3 max-w-[180px]">
-                                                        {cart.comment ? (
-                                                            <span className="flex items-start gap-1 text-xs text-gray-600 dark:text-gray-400">
-                                                                <MessageSquare className="h-3 w-3 shrink-0 mt-0.5 text-gray-400" />
-                                                                <span className="truncate">{cart.comment}</span>
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-gray-300 dark:text-gray-600 text-xs">—</span>
-                                                        )}
+                                                        <button
+                                                            onClick={() => openCart(cart, "comments")}
+                                                            className="text-left w-full hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                                                            title="Открыть комментарии"
+                                                        >
+                                                            {cart.comment ? (
+                                                                <span className="flex items-start gap-1 text-xs text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400">
+                                                                    <MessageSquare className="h-3 w-3 shrink-0 mt-0.5 text-purple-400" />
+                                                                    <span className="truncate">{cart.comment}</span>
+                                                                </span>
+                                                            ) : (
+                                                                <span className="flex items-center gap-1 text-xs text-gray-300 dark:text-gray-600 hover:text-purple-400 dark:hover:text-purple-500">
+                                                                    <MessageSquare className="h-3 w-3" />
+                                                                    Добавить
+                                                                </span>
+                                                            )}
+                                                        </button>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -714,8 +722,8 @@ export default function UserCarts() {
             <UserCartModal
                 cart={selectedCart}
                 isOpen={selectedCart !== null}
-                onClose={() => setSelectedCart(null)}
-                onUpdateComment={handleUpdateComment}
+                onClose={closeCart}
+                initialTab={selectedCartTab}
                 t={t as unknown as Record<string, string>}
             />
         </div>
