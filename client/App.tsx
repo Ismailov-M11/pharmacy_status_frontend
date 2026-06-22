@@ -19,6 +19,7 @@ import NewPharmacies from "./pages/NewPharmacies";
 import DeliveryAnalytics from "./pages/DeliveryAnalytics";
 import OsonList from "./pages/OsonList";
 import NotificationCenter from "./pages/NotificationCenter";
+import UserCarts from "./pages/UserCarts";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -158,6 +159,14 @@ const App = () => (
                       allowedRoles={["ROLE_ADMIN", "ROLE_AGENT", "ROLE_OPERATOR"]}
                     >
                       <OsonList />
+                    </RoleBasedRoute>
+                  }
+                />
+                <Route
+                  path="/user-carts"
+                  element={
+                    <RoleBasedRoute allowedRoles={["ROLE_ADMIN", "ROLE_AGENT", "ROLE_OPERATOR"]}>
+                      <UserCarts />
                     </RoleBasedRoute>
                   }
                 />

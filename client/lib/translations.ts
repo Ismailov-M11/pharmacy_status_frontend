@@ -291,6 +291,25 @@ export const translations = {
     davoContract: "Davo - договор",
     contract: "Договор",
     noContract: "Нет договора",
+
+    // User Carts
+    userCarts: "Корзины пользователей",
+    userCartsDescription: "Список заказов в черновике",
+    cartId: "ID корзины",
+    itemsCount: "Товаров",
+    marketTotal: "Сумма товаров",
+    deliveryFee: "Доставка",
+    serviceFee: "Комиссия",
+    grandTotal: "Итого",
+    promoCode: "Промокод",
+    sourceLabel: "Источник",
+    productName: "Название товара",
+    manufacturer: "Производитель",
+    quantity: "Кол-во",
+    price: "Цена",
+    noPromoCode: "—",
+    expandItems: "Товары",
+    page: "Страница",
   },
   uz: {
     // Common
@@ -585,6 +604,25 @@ export const translations = {
     davoContract: "Davo - shartnoma",
     contract: "Shartnoma",
     noContract: "Shartnoma yo'q",
+
+    // User Carts
+    userCarts: "Foydalanuvchilar savatchalari",
+    userCartsDescription: "Qoralama buyurtmalar ro'yxati",
+    cartId: "Savatcha ID",
+    itemsCount: "Mahsulotlar",
+    marketTotal: "Mahsulotlar summasi",
+    deliveryFee: "Yetkazib berish",
+    serviceFee: "Komissiya",
+    grandTotal: "Jami",
+    promoCode: "Promo kod",
+    sourceLabel: "Manba",
+    productName: "Mahsulot nomi",
+    manufacturer: "Ishlab chiqaruvchi",
+    quantity: "Miqdor",
+    price: "Narx",
+    noPromoCode: "—",
+    expandItems: "Mahsulotlar",
+    page: "Sahifa",
   },
 };
 

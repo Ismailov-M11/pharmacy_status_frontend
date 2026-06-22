@@ -16,6 +16,7 @@ import {
   Sun,
   TrendingUp,
   ShoppingBag,
+  ShoppingCart,
   Bell,
   ChevronRight,
   X,
@@ -137,6 +138,16 @@ export function Header() {
         colorActive: "bg-amber-50 dark:bg-amber-900/20",
         colorActiveBorder: "border-amber-500",
       },
+      {
+        label: t.userCarts || "Корзины пользователей",
+        path: "/user-carts",
+        icon: ShoppingCart,
+        description: "Черновики заказов",
+        colorBg: "bg-cyan-100 dark:bg-cyan-900/40",
+        colorIcon: "text-cyan-600 dark:text-cyan-400",
+        colorActive: "bg-cyan-50 dark:bg-cyan-900/20",
+        colorActiveBorder: "border-cyan-500",
+      },
     );
   } else if (role === "ROLE_AGENT" || role === "ROLE_OPERATOR") {
     const agentLabel =
@@ -214,6 +225,16 @@ export function Header() {
         colorIcon: "text-amber-600 dark:text-amber-400",
         colorActive: "bg-amber-50 dark:bg-amber-900/20",
         colorActiveBorder: "border-amber-500",
+      },
+      {
+        label: t.userCarts || "Корзины пользователей",
+        path: "/user-carts",
+        icon: ShoppingCart,
+        description: "Черновики заказов",
+        colorBg: "bg-cyan-100 dark:bg-cyan-900/40",
+        colorIcon: "text-cyan-600 dark:text-cyan-400",
+        colorActive: "bg-cyan-50 dark:bg-cyan-900/20",
+        colorActiveBorder: "border-cyan-500",
       },
     );
   }
