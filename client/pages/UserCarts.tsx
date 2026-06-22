@@ -21,10 +21,20 @@ import {
     Search,
     SlidersHorizontal,
     X,
+    CheckCircle,
+    Clock,
+    MessageSquare,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { fetchAllDraftOrders, DraftOrder } from "@/lib/draftOrderApi";
+import {
+    getUserCarts,
+    getCartSyncStatus,
+    triggerCartSync,
+    updateCartComment,
+    UserCart,
+    CartSyncStatus,
+} from "@/lib/userCartApi";
 
 const PAGE_SIZE = 50;
 
@@ -34,10 +44,10 @@ function formatSum(n: number): string {
         .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
 
-function customerName(order: DraftOrder): string {
-    const { firstName, lastName, phone } = order.customer;
-    if (firstName || lastName) return [firstName, lastName].filter(Boolean).join(" ");
-    return phone;
+function customerName(cart: UserCart): string {
+    const { customer_first_name: fn, customer_last_name: ln, customer_phone: ph } = cart;
+    if (fn || ln) return [fn, ln].filter(Boolean).join(" ");
+    return ph ?? "";
 }
 
 interface Filters {
@@ -50,6 +60,7 @@ interface Filters {
     totalMax: string;
     promoCode: string;
     sources: string[];
+    status: string;
 }
 
 const EMPTY_FILTERS: Filters = {
@@ -62,6 +73,7 @@ const EMPTY_FILTERS: Filters = {
     totalMax: "",
     promoCode: "",
     sources: [],
+    status: "all",
 };
 
 function activeFilterCount(f: Filters): number {
@@ -72,16 +84,12 @@ function activeFilterCount(f: Filters): number {
     if (f.totalMin || f.totalMax) n++;
     if (f.promoCode) n++;
     if (f.sources.length) n++;
+    if (f.status && f.status !== "all") n++;
     return n;
 }
 
 // ─── Mini checkbox list ────────────────────────────────────────────────────────
-function CheckList({
-    options,
-    selected,
-    onChange,
-    searchable,
-}: {
+function CheckList({ options, selected, onChange, searchable }: {
     options: string[];
     selected: string[];
     onChange: (v: string[]) => void;
@@ -133,32 +141,116 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
     );
 }
 
+function StatusBadge({ status, t }: { status: "unprocessed" | "processed"; t: Record<string, string> }) {
+    if (status === "processed") {
+        return (
+            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 whitespace-nowrap">
+                <CheckCircle className="h-3 w-3" />
+                {t.processed}
+            </span>
+        );
+    }
+    return (
+        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 whitespace-nowrap">
+            <Clock className="h-3 w-3" />
+            {t.unprocessed}
+        </span>
+    );
+}
+
+// ─── Sync status bar ──────────────────────────────────────────────────────────
+function SyncBar({ syncStatus, onSync, isTriggeringSync, t }: {
+    syncStatus: CartSyncStatus | null;
+    onSync: () => void;
+    isTriggeringSync: boolean;
+    t: Record<string, string>;
+}) {
+    const isSyncing = syncStatus?.isSyncing || isTriggeringSync;
+    const progress = syncStatus?.progress;
+    const lastSync = syncStatus?.lastSyncAt || syncStatus?.stats?.lastSyncedAt;
+
+    return (
+        <div className="flex items-center gap-3 px-4 py-2.5 mb-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm">
+            <div className="flex-1 min-w-0">
+                {isSyncing ? (
+                    <div className="flex items-center gap-2">
+                        <RefreshCw className="h-3.5 w-3.5 text-purple-500 animate-spin shrink-0" />
+                        <span className="text-purple-600 dark:text-purple-400">
+                            {t.syncInProgress}
+                            {progress && progress.total > 0 && ` ${progress.current}/${progress.total} (${progress.percent}%)`}
+                        </span>
+                    </div>
+                ) : lastSync ? (
+                    <span className="text-gray-500 dark:text-gray-400">
+                        {t.lastSyncedAt}: {format(new Date(lastSync), "dd.MM.yyyy HH:mm")}
+                    </span>
+                ) : (
+                    <span className="text-gray-400 dark:text-gray-500">{t.noSyncYet}</span>
+                )}
+                {syncStatus?.lastSyncError && (
+                    <span className="ml-2 text-red-500 dark:text-red-400 text-xs">⚠ {syncStatus.lastSyncError}</span>
+                )}
+            </div>
+            {syncStatus?.stats && (
+                <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 shrink-0">
+                    <span>{t.total || "Всего"}: <b className="text-gray-700 dark:text-gray-300">{syncStatus.stats.total}</b></span>
+                    <span className="text-yellow-600 dark:text-yellow-400">{syncStatus.stats.unprocessed} {t.unprocessed}</span>
+                    <span className="text-green-600 dark:text-green-400">{syncStatus.stats.processed} {t.processed}</span>
+                </div>
+            )}
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={onSync}
+                disabled={isSyncing}
+                className="gap-1.5 shrink-0 text-xs"
+            >
+                <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`} />
+                {t.syncNow}
+            </Button>
+        </div>
+    );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function UserCarts() {
-    const { isAuthenticated, isLoading: authLoading, token } = useAuth();
+    const { isAuthenticated, isLoading: authLoading, token, user } = useAuth();
     const { t } = useLanguage();
     const navigate = useNavigate();
 
-    const [allOrders, setAllOrders] = useState<DraftOrder[]>([]);
+    const [allCarts, setAllCarts] = useState<UserCart[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isTriggeringSync, setIsTriggeringSync] = useState(false);
+    const [syncStatus, setSyncStatus] = useState<CartSyncStatus | null>(null);
     const [page, setPage] = useState(0);
     const [query, setQuery] = useState("");
     const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
     const [pendingFilters, setPendingFilters] = useState<Filters>(EMPTY_FILTERS);
     const [filterOpen, setFilterOpen] = useState(false);
-    const [selectedOrder, setSelectedOrder] = useState<DraftOrder | null>(null);
+    const [selectedCart, setSelectedCart] = useState<UserCart | null>(null);
+    const syncPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
         if (authLoading) return;
         if (!isAuthenticated) navigate("/login");
     }, [authLoading, isAuthenticated, navigate]);
 
-    const load = useCallback(async () => {
+    const loadSyncStatus = useCallback(async () => {
+        if (!token) return;
+        try {
+            const s = await getCartSyncStatus(token);
+            setSyncStatus(s);
+        } catch {
+            // non-critical
+        }
+    }, [token]);
+
+    const loadCarts = useCallback(async () => {
         if (!token) return;
         setIsLoading(true);
         try {
-            const list = await fetchAllDraftOrders(token);
-            setAllOrders(list);
+            const res = await getUserCarts(token);
+            setAllCarts(res.data);
         } catch {
             toast.error(t.dataLoadError || "Ошибка при загрузке данных");
         } finally {
@@ -167,106 +259,142 @@ export default function UserCarts() {
     }, [token, t]);
 
     useEffect(() => {
-        if (!authLoading && isAuthenticated) load();
-    }, [authLoading, isAuthenticated, load]);
+        if (!authLoading && isAuthenticated) {
+            loadCarts();
+            loadSyncStatus();
+        }
+    }, [authLoading, isAuthenticated, loadCarts, loadSyncStatus]);
 
-    // Derived option lists
+    // Poll sync status while syncing
+    useEffect(() => {
+        if (syncStatus?.isSyncing) {
+            syncPollRef.current = setInterval(() => {
+                loadSyncStatus();
+            }, 2000);
+        } else {
+            if (syncPollRef.current) {
+                clearInterval(syncPollRef.current);
+                syncPollRef.current = null;
+            }
+        }
+        return () => {
+            if (syncPollRef.current) clearInterval(syncPollRef.current);
+        };
+    }, [syncStatus?.isSyncing, loadSyncStatus]);
+
+    // Reload carts after sync finishes
+    const wasSyncing = useRef(false);
+    useEffect(() => {
+        if (wasSyncing.current && syncStatus && !syncStatus.isSyncing) {
+            loadCarts();
+        }
+        wasSyncing.current = syncStatus?.isSyncing ?? false;
+    }, [syncStatus?.isSyncing, loadCarts]);
+
+    const handleSync = async () => {
+        if (!token) return;
+        setIsTriggeringSync(true);
+        try {
+            await triggerCartSync(token);
+            await loadSyncStatus();
+            toast.success(t.syncInProgress || "Синхронизация запущена");
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : "Ошибка синхронизации");
+        } finally {
+            setIsTriggeringSync(false);
+        }
+    };
+
+    const handleCommentSaved = (updated: UserCart) => {
+        setAllCarts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+        if (selectedCart?.id === updated.id) setSelectedCart(updated);
+        loadSyncStatus();
+    };
+
+    const handleUpdateComment = async (cartId: number, comment: string): Promise<UserCart> => {
+        if (!token) throw new Error("No token");
+        const updated = await updateCartComment(token, cartId, comment, user?.username ?? "");
+        handleCommentSaved(updated);
+        return updated;
+    };
+
+    // Derived option lists from loaded data
     const allPharmacies = useMemo(
-        () => [...new Set(allOrders.map((o) => o.market.name))].sort(),
-        [allOrders]
+        () => [...new Set(allCarts.map((c) => c.market_name).filter(Boolean) as string[])].sort(),
+        [allCarts]
     );
     const allSources = useMemo(
-        () => [...new Set(allOrders.map((o) => o.source))].sort(),
-        [allOrders]
+        () => [...new Set(allCarts.map((c) => c.source).filter(Boolean) as string[])].sort(),
+        [allCarts]
     );
 
-    // Search + filter
-    const filteredOrders = useMemo(() => {
-        let result = allOrders;
+    // Client-side search + filter
+    const filteredCarts = useMemo(() => {
+        let result = allCarts;
 
-        // Search
         if (query.trim()) {
             const q = query.toLowerCase();
-            result = result.filter((o) =>
-                String(o.id).includes(q) ||
-                o.customer.phone.includes(q) ||
-                customerName(o).toLowerCase().includes(q) ||
-                o.market.name.toLowerCase().includes(q) ||
-                o.market.address.toLowerCase().includes(q) ||
-                o.items.some((i) => i.name.toLowerCase().includes(q)) ||
-                (o.invoice.promoCode?.code ?? "").toLowerCase().includes(q)
+            result = result.filter((c) =>
+                String(c.id).includes(q) ||
+                (c.customer_phone ?? "").includes(q) ||
+                customerName(c).toLowerCase().includes(q) ||
+                (c.market_name ?? "").toLowerCase().includes(q) ||
+                (c.market_address ?? "").toLowerCase().includes(q) ||
+                (c.items as Array<{ name: string }>).some((i) => i.name.toLowerCase().includes(q)) ||
+                (c.invoice_promo_code ?? "").toLowerCase().includes(q) ||
+                (c.comment ?? "").toLowerCase().includes(q)
             );
         }
 
-        // Date from
+        if (filters.status && filters.status !== "all") {
+            result = result.filter((c) => c.cart_status === filters.status);
+        }
         if (filters.dateFrom) {
             const from = new Date(filters.dateFrom);
-            result = result.filter((o) => new Date(o.creationDate) >= from);
+            result = result.filter((c) => new Date(c.creation_date) >= from);
         }
-        // Date to
         if (filters.dateTo) {
             const to = new Date(filters.dateTo);
             to.setHours(23, 59, 59, 999);
-            result = result.filter((o) => new Date(o.creationDate) <= to);
+            result = result.filter((c) => new Date(c.creation_date) <= to);
         }
-        // Pharmacies
         if (filters.pharmacies.length) {
-            result = result.filter((o) => filters.pharmacies.includes(o.market.name));
+            result = result.filter((c) => filters.pharmacies.includes(c.market_name ?? ""));
         }
-        // Items count
         if (filters.itemsMin) {
-            result = result.filter((o) => o.items.length >= Number(filters.itemsMin));
+            result = result.filter((c) => c.items.length >= Number(filters.itemsMin));
         }
         if (filters.itemsMax) {
-            result = result.filter((o) => o.items.length <= Number(filters.itemsMax));
+            result = result.filter((c) => c.items.length <= Number(filters.itemsMax));
         }
-        // Total amount
         if (filters.totalMin) {
-            result = result.filter((o) => o.invoice.total >= Number(filters.totalMin));
+            result = result.filter((c) => c.invoice_total >= Number(filters.totalMin));
         }
         if (filters.totalMax) {
-            result = result.filter((o) => o.invoice.total <= Number(filters.totalMax));
+            result = result.filter((c) => c.invoice_total <= Number(filters.totalMax));
         }
-        // Promo code
         if (filters.promoCode.trim()) {
             const pc = filters.promoCode.toLowerCase();
-            result = result.filter((o) =>
-                (o.invoice.promoCode?.code ?? "").toLowerCase().includes(pc)
-            );
+            result = result.filter((c) => (c.invoice_promo_code ?? "").toLowerCase().includes(pc));
         }
-        // Sources
         if (filters.sources.length) {
-            result = result.filter((o) => filters.sources.includes(o.source));
+            result = result.filter((c) => filters.sources.includes(c.source ?? ""));
         }
 
         return result;
-    }, [allOrders, query, filters]);
+    }, [allCarts, query, filters]);
 
-    // Reset page when search/filter changes
     const prevQuery = useRef(query);
     useEffect(() => {
         if (query !== prevQuery.current) { setPage(0); prevQuery.current = query; }
     }, [query]);
 
-    const totalPages = Math.ceil(filteredOrders.length / PAGE_SIZE);
-    const pageOrders = filteredOrders.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+    const totalPages = Math.ceil(filteredCarts.length / PAGE_SIZE);
+    const pageCarts = filteredCarts.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-    const applyFilters = () => {
-        setFilters(pendingFilters);
-        setPage(0);
-        setFilterOpen(false);
-    };
-
-    const resetFilters = () => {
-        setPendingFilters(EMPTY_FILTERS);
-        setFilters(EMPTY_FILTERS);
-        setPage(0);
-    };
-
-    const openFilter = () => {
-        setPendingFilters(filters);
-        setFilterOpen(true);
-    };
+    const applyFilters = () => { setFilters(pendingFilters); setPage(0); setFilterOpen(false); };
+    const resetFilters = () => { setPendingFilters(EMPTY_FILTERS); setFilters(EMPTY_FILTERS); setPage(0); };
+    const openFilter = () => { setPendingFilters(filters); setFilterOpen(true); };
 
     const activeCount = activeFilterCount(filters);
 
@@ -284,23 +412,31 @@ export default function UserCarts() {
 
             <main className="w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
                 {/* Page header */}
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-4">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t.userCarts}</h1>
                         <p className="text-gray-600 dark:text-gray-400 mt-1">
                             {t.userCartsDescription}
-                            {allOrders.length > 0 && (
+                            {allCarts.length > 0 && (
                                 <span className="ml-2 text-purple-600 dark:text-purple-400 font-medium">
-                                    ({allOrders.length})
+                                    ({allCarts.length})
                                 </span>
                             )}
                         </p>
                     </div>
-                    <Button onClick={load} variant="outline" disabled={isLoading} className="gap-2">
+                    <Button onClick={loadCarts} variant="outline" disabled={isLoading} className="gap-2">
                         <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                         {t.update}
                     </Button>
                 </div>
+
+                {/* Sync status bar */}
+                <SyncBar
+                    syncStatus={syncStatus}
+                    onSync={handleSync}
+                    isTriggeringSync={isTriggeringSync}
+                    t={t as unknown as Record<string, string>}
+                />
 
                 {/* Search + Filter bar — full width */}
                 <div className="flex items-center gap-2 mb-4">
@@ -344,12 +480,11 @@ export default function UserCarts() {
                     </Button>
                 </div>
 
-                {/* Results count when filtered */}
                 {(query || activeCount > 0) && !isLoading && (
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                        {t.noResults !== undefined && filteredOrders.length === 0
-                            ? t.noResults
-                            : `${t.shown}: ${filteredOrders.length}`}
+                        {filteredCarts.length === 0
+                            ? (t.noResults ?? "Ничего не найдено")
+                            : `${t.shown}: ${filteredCarts.length}`}
                     </p>
                 )}
 
@@ -357,7 +492,7 @@ export default function UserCarts() {
                     <CardContent className="pt-6">
                         {isLoading ? (
                             <div className="h-96 bg-gray-200 dark:bg-gray-700 animate-pulse rounded-lg" />
-                        ) : filteredOrders.length === 0 ? (
+                        ) : filteredCarts.length === 0 ? (
                             <p className="text-center text-gray-500 dark:text-gray-400 py-8">{t.noData}</p>
                         ) : (
                             <>
@@ -365,70 +500,75 @@ export default function UserCarts() {
                                     <table className="w-full text-sm">
                                         <thead>
                                             <tr className="border-b border-gray-200 dark:border-gray-700">
-                                                {["№", "ID", t.date, t.customer, t.phone, t.pharmacyName, t.address, t.itemsCount, t.marketTotal, t.deliveryFee, t.serviceFee, t.grandTotal, t.promoCode, t.sourceLabel].map((h, i) => (
+                                                {[
+                                                    { label: "№", align: "left" },
+                                                    { label: "ID", align: "left" },
+                                                    { label: t.date, align: "left" },
+                                                    { label: t.customer, align: "left" },
+                                                    { label: t.phone, align: "left" },
+                                                    { label: t.pharmacyName, align: "left" },
+                                                    { label: t.address, align: "left" },
+                                                    { label: t.itemsCount, align: "center" },
+                                                    { label: t.grandTotal, align: "right" },
+                                                    { label: t.promoCode, align: "left" },
+                                                    { label: t.sourceLabel, align: "left" },
+                                                    { label: t.cartStatus, align: "left" },
+                                                    { label: t.comment, align: "left" },
+                                                ].map((h, i) => (
                                                     <th
                                                         key={i}
-                                                        className={`py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap ${i >= 8 ? "text-right" : i === 7 ? "text-center" : "text-left"}`}
+                                                        className={`py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap text-${h.align}`}
                                                     >
-                                                        {h}
+                                                        {h.label}
                                                     </th>
                                                 ))}
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {pageOrders.map((order, idx) => {
+                                            {pageCarts.map((cart, idx) => {
                                                 const rowNum = page * PAGE_SIZE + idx + 1;
                                                 return (
                                                     <tr
-                                                        key={order.id}
+                                                        key={cart.id}
                                                         className="border-b border-gray-100 dark:border-gray-800 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
                                                     >
                                                         <td className="py-3 px-3 text-gray-500 dark:text-gray-400">{rowNum}</td>
                                                         <td className="py-3 px-3">
                                                             <button
-                                                                onClick={() => setSelectedOrder(order)}
+                                                                onClick={() => setSelectedCart(cart)}
                                                                 className="font-medium text-purple-700 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 hover:underline whitespace-nowrap"
                                                             >
-                                                                #{order.id}
+                                                                #{cart.id}
                                                             </button>
                                                         </td>
                                                         <td className="py-3 px-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                                                            {format(new Date(order.creationDate), "dd.MM.yyyy HH:mm")}
+                                                            {format(new Date(cart.creation_date), "dd.MM.yyyy HH:mm")}
                                                         </td>
                                                         <td className="py-3 px-3 text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                                                            {customerName(order)}
+                                                            {customerName(cart)}
                                                         </td>
                                                         <td className="py-3 px-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                                                            {order.customer.phone}
+                                                            {cart.customer_phone}
                                                         </td>
                                                         <td className="py-3 px-3 text-gray-900 dark:text-gray-100">
-                                                            {order.market.name}
+                                                            {cart.market_name}
                                                         </td>
-                                                        <td className="py-3 px-3 text-gray-500 dark:text-gray-400 max-w-[200px] truncate">
-                                                            {order.market.address}
+                                                        <td className="py-3 px-3 text-gray-500 dark:text-gray-400 max-w-[180px] truncate">
+                                                            {cart.market_address}
                                                         </td>
                                                         <td className="py-3 px-3 text-center">
                                                             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs font-semibold">
-                                                                {order.items.length}
+                                                                {cart.items.length}
                                                             </span>
                                                         </td>
-                                                        <td className="py-3 px-3 text-right text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                                                            {formatSum(order.invoice.marketTotal)} {t.sum}
-                                                        </td>
-                                                        <td className="py-3 px-3 text-right text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                                                            {formatSum(order.invoice.deliveryTotal)} {t.sum}
-                                                        </td>
-                                                        <td className="py-3 px-3 text-right text-gray-500 whitespace-nowrap">
-                                                            {formatSum(order.invoice.serviceTotal)} {t.sum}
-                                                        </td>
                                                         <td className="py-3 px-3 text-right font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                                                            {formatSum(order.invoice.total)} {t.sum}
+                                                            {formatSum(cart.invoice_total)} {t.sum}
                                                         </td>
                                                         <td className="py-3 px-3 whitespace-nowrap">
-                                                            {order.invoice.promoCode ? (
+                                                            {cart.invoice_promo_code ? (
                                                                 <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400">
                                                                     <Tag className="h-2.5 w-2.5" />
-                                                                    {order.invoice.promoCode.code}
+                                                                    {cart.invoice_promo_code}
                                                                 </span>
                                                             ) : (
                                                                 <span className="text-gray-300 dark:text-gray-600">—</span>
@@ -436,8 +576,21 @@ export default function UserCarts() {
                                                         </td>
                                                         <td className="py-3 px-3 whitespace-nowrap">
                                                             <span className="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                                                                {order.source}
+                                                                {cart.source}
                                                             </span>
+                                                        </td>
+                                                        <td className="py-3 px-3">
+                                                            <StatusBadge status={cart.cart_status} t={t as unknown as Record<string, string>} />
+                                                        </td>
+                                                        <td className="py-3 px-3 max-w-[180px]">
+                                                            {cart.comment ? (
+                                                                <span className="flex items-start gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                                                    <MessageSquare className="h-3 w-3 shrink-0 mt-0.5 text-gray-400" />
+                                                                    <span className="truncate">{cart.comment}</span>
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-gray-300 dark:text-gray-600 text-xs">—</span>
+                                                            )}
                                                         </td>
                                                     </tr>
                                                 );
@@ -449,7 +602,7 @@ export default function UserCarts() {
                                 {/* Pagination */}
                                 <div className="mt-4 flex items-center justify-between gap-4 flex-wrap">
                                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                                        {t.shown}: {Math.min(page * PAGE_SIZE + 1, filteredOrders.length)}–{Math.min((page + 1) * PAGE_SIZE, filteredOrders.length)} {t.of} {filteredOrders.length}
+                                        {t.shown}: {Math.min(page * PAGE_SIZE + 1, filteredCarts.length)}–{Math.min((page + 1) * PAGE_SIZE, filteredCarts.length)} {t.of} {filteredCarts.length}
                                     </span>
 
                                     {totalPages > 1 && (
@@ -498,30 +651,38 @@ export default function UserCarts() {
                     <div className="flex-1 overflow-y-auto px-6 py-5">
                         <div className="grid grid-cols-2 gap-6">
 
-                            {/* Date range */}
-                            <div className="col-span-2">
-                                <FilterSection title={t.period || "Период"}>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{t.dateFrom || "От"}</label>
-                                            <input
-                                                type="date"
-                                                value={pendingFilters.dateFrom}
-                                                onChange={(e) => setPendingFilters((f) => ({ ...f, dateFrom: e.target.value }))}
-                                                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{t.dateTo || "До"}</label>
-                                            <input
-                                                type="date"
-                                                value={pendingFilters.dateTo}
-                                                onChange={(e) => setPendingFilters((f) => ({ ...f, dateTo: e.target.value }))}
-                                                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
-                                            />
-                                        </div>
-                                    </div>
-                                </FilterSection>
+                            {/* Date range + status */}
+                            <div className="col-span-2 grid grid-cols-3 gap-4">
+                                <div>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{t.dateFrom || "От"}</label>
+                                    <input
+                                        type="date"
+                                        value={pendingFilters.dateFrom}
+                                        onChange={(e) => setPendingFilters((f) => ({ ...f, dateFrom: e.target.value }))}
+                                        className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{t.dateTo || "До"}</label>
+                                    <input
+                                        type="date"
+                                        value={pendingFilters.dateTo}
+                                        onChange={(e) => setPendingFilters((f) => ({ ...f, dateTo: e.target.value }))}
+                                        className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{t.cartStatus}</label>
+                                    <select
+                                        value={pendingFilters.status}
+                                        onChange={(e) => setPendingFilters((f) => ({ ...f, status: e.target.value }))}
+                                        className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
+                                    >
+                                        <option value="all">{t.allStatuses}</option>
+                                        <option value="unprocessed">{t.unprocessed}</option>
+                                        <option value="processed">{t.processed}</option>
+                                    </select>
+                                </div>
                             </div>
 
                             {/* Pharmacies */}
@@ -536,60 +697,36 @@ export default function UserCarts() {
                                 </FilterSection>
                             </div>
 
-                            {/* Right column: items count + total + promo + source */}
+                            {/* Right column */}
                             <div className="space-y-5">
                                 <FilterSection title={t.itemsCount || "Кол-во товаров"}>
                                     <div className="flex items-center gap-2">
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            placeholder="от"
-                                            value={pendingFilters.itemsMin}
+                                        <input type="number" min="0" placeholder="от" value={pendingFilters.itemsMin}
                                             onChange={(e) => setPendingFilters((f) => ({ ...f, itemsMin: e.target.value }))}
-                                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
-                                        />
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400" />
                                         <span className="text-gray-400 shrink-0">—</span>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            placeholder="до"
-                                            value={pendingFilters.itemsMax}
+                                        <input type="number" min="0" placeholder="до" value={pendingFilters.itemsMax}
                                             onChange={(e) => setPendingFilters((f) => ({ ...f, itemsMax: e.target.value }))}
-                                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
-                                        />
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400" />
                                     </div>
                                 </FilterSection>
 
                                 <FilterSection title={t.grandTotal || "Сумма итого"}>
                                     <div className="flex items-center gap-2">
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            placeholder="от"
-                                            value={pendingFilters.totalMin}
+                                        <input type="number" min="0" placeholder="от" value={pendingFilters.totalMin}
                                             onChange={(e) => setPendingFilters((f) => ({ ...f, totalMin: e.target.value }))}
-                                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
-                                        />
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400" />
                                         <span className="text-gray-400 shrink-0">—</span>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            placeholder="до"
-                                            value={pendingFilters.totalMax}
+                                        <input type="number" min="0" placeholder="до" value={pendingFilters.totalMax}
                                             onChange={(e) => setPendingFilters((f) => ({ ...f, totalMax: e.target.value }))}
-                                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
-                                        />
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400" />
                                     </div>
                                 </FilterSection>
 
                                 <FilterSection title={t.promoCode || "Промокод"}>
-                                    <input
-                                        type="text"
-                                        placeholder="WELCOME_THREE..."
-                                        value={pendingFilters.promoCode}
+                                    <input type="text" placeholder="WELCOME_THREE..." value={pendingFilters.promoCode}
                                         onChange={(e) => setPendingFilters((f) => ({ ...f, promoCode: e.target.value }))}
-                                        className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
-                                    />
+                                        className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400" />
                                 </FilterSection>
 
                                 <FilterSection title={t.sourceLabel || "Источник"}>
@@ -606,14 +743,8 @@ export default function UserCarts() {
 
                     {/* Footer */}
                     <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex gap-2 shrink-0">
-                        <Button onClick={applyFilters} className="flex-1">
-                            {t.apply}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            onClick={() => { setPendingFilters(EMPTY_FILTERS); setFilters(EMPTY_FILTERS); setPage(0); setFilterOpen(false); }}
-                            className="flex-1"
-                        >
+                        <Button onClick={applyFilters} className="flex-1">{t.apply}</Button>
+                        <Button variant="outline" onClick={() => { setPendingFilters(EMPTY_FILTERS); setFilters(EMPTY_FILTERS); setPage(0); setFilterOpen(false); }} className="flex-1">
                             {t.reset}
                         </Button>
                     </div>
@@ -622,9 +753,11 @@ export default function UserCarts() {
 
             {/* Cart detail modal */}
             <UserCartModal
-                order={selectedOrder}
-                isOpen={selectedOrder !== null}
-                onClose={() => setSelectedOrder(null)}
+                cart={selectedCart}
+                isOpen={selectedCart !== null}
+                onClose={() => setSelectedCart(null)}
+                onUpdateComment={handleUpdateComment}
+                t={t as unknown as Record<string, string>}
             />
         </div>
     );

@@ -310,6 +310,19 @@ export const translations = {
     noPromoCode: "—",
     expandItems: "Товары",
     page: "Страница",
+    // Cart status & comment
+    cartStatus: "Статус",
+    unprocessed: "Не обработан",
+    processed: "Обработан",
+    allStatuses: "Все статусы",
+    comment: "Комментарий",
+    commentBy: "Добавил",
+    commentDate: "Дата комментария",
+    saveComment: "Сохранить",
+    syncNow: "Синхронизировать",
+    lastSyncedAt: "Последняя синхронизация",
+    syncInProgress: "Синхронизация...",
+    noSyncYet: "Ещё не синхронизировалось",
   },
   uz: {
     // Common
@@ -623,6 +636,19 @@ export const translations = {
     noPromoCode: "—",
     expandItems: "Mahsulotlar",
     page: "Sahifa",
+    // Cart status & comment
+    cartStatus: "Holat",
+    unprocessed: "Ishlanmagan",
+    processed: "Ishlangan",
+    allStatuses: "Barcha holatlar",
+    comment: "Izoh",
+    commentBy: "Qo'shgan",
+    commentDate: "Izoh sanasi",
+    saveComment: "Saqlash",
+    syncNow: "Sinxronlashtirish",
+    lastSyncedAt: "Oxirgi sinxronlash",
+    syncInProgress: "Sinxronlanmoqda...",
+    noSyncYet: "Hali sinxronlanmagan",
   },
 };
 
