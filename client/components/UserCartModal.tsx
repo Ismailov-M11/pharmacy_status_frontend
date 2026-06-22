@@ -234,7 +234,7 @@ export function statusBadgeClasses(color: string): string {
 
 // ─── Comments tab ─────────────────────────────────────────────────────────────
 const ORDER_STATUS_LOCK: Record<string, { label: string; cls: string }> = {
-    in_progress: { label: "Заказ доставляется — обновление статуса недоступно",        cls: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300" },
+    in_progress: { label: "Заказ доставляется — обновление статуса недоступно",        cls: "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300" },
     delivered:   { label: "Заказ доставлен — обновление статуса недоступно",          cls: "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300" },
     cancelled:   { label: "Заказ отменён — обновление статуса недоступно",            cls: "bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300" },
     deleted:     { label: "Корзина удалена клиентом — обновление статуса недоступно", cls: "bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400" },
@@ -278,7 +278,7 @@ function CommentsTab({ cart, token, username, statuses, isAdmin, onStatusCreated
         if (addingStatus) setTimeout(() => newStatusInputRef.current?.focus(), 50);
     }, [addingStatus]);
 
-    const canSend = text.trim().length > 0 && selectedStatus !== "";
+    const canSend = selectedStatus !== "";
 
     const handleSend = async () => {
         if (!canSend) return;
@@ -339,7 +339,7 @@ function CommentsTab({ cart, token, username, statuses, isAdmin, onStatusCreated
                                         {s.label}
                                     </span>
                                 )}
-                                <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">{c.text}</p>
+                                {c.text && <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">{c.text}</p>}
                                 <div className="flex items-center gap-2 mt-2 text-xs text-gray-400 dark:text-gray-500">
                                     <User className="h-3 w-3 shrink-0" />
                                     <span className="font-medium text-gray-500 dark:text-gray-400">{c.created_by}</span>
@@ -366,9 +366,7 @@ function CommentsTab({ cart, token, username, statuses, isAdmin, onStatusCreated
             <div className="border-t border-gray-100 dark:border-gray-800 pt-3 flex flex-col gap-2">
                 {/* Status selector */}
                 <div className="flex flex-col gap-1.5">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                        Статус <span className="text-red-400">*</span>
-                    </span>
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Статус</span>
                     <div className="flex gap-2 flex-wrap items-center">
                         {statuses.map((s) => {
                             const cls = (COLOR_MAP[s.color] ?? COLOR_MAP.gray).btn;
@@ -438,19 +436,14 @@ function CommentsTab({ cart, token, username, statuses, isAdmin, onStatusCreated
                     onChange={(e) => setText(e.target.value)}
                     onKeyDown={handleKeyDown}
                     rows={3}
-                    placeholder="Введите комментарий... (Ctrl+Enter для отправки)"
+                    placeholder="Комментарий (необязательно)"
                     className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400 resize-none"
                 />
-                <div className="flex items-center justify-between">
-                    {!selectedStatus && text.trim() && (
-                        <span className="text-xs text-red-400">Выберите статус перед отправкой</span>
-                    )}
-                    <div className="ml-auto">
-                        <Button onClick={handleSend} disabled={saving || !canSend} size="sm" className="gap-1.5">
-                            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                            Отправить
-                        </Button>
-                    </div>
+                <div className="flex justify-end">
+                    <Button onClick={handleSend} disabled={saving || !canSend} size="sm" className="gap-1.5">
+                        {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                        Применить
+                    </Button>
                 </div>
             </div>
             )}

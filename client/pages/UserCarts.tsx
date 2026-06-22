@@ -42,6 +42,7 @@ import {
     triggerCartSync,
     getCartStatuses,
     triggerOrderSync,
+    getOrderSyncStatus,
     UserCart,
     CartStatus,
     CartSyncStatus,
@@ -103,7 +104,7 @@ function SyncProgressBar({ progress }: { progress: { current: number; total: num
 // ─── Order status badge ────────────────────────────────────────────────────────
 const ORDER_STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
     pending:     { label: "Ожидает",      cls: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400" },
-    in_progress: { label: "Доставляется", cls: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300" },
+    in_progress: { label: "Доставляется", cls: "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300" },
     delivered:   { label: "Доставлен",    cls: "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300" },
     cancelled:   { label: "Отменён",      cls: "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300" },
     deleted:     { label: "Удалён",       cls: "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 line-through" },
@@ -173,23 +174,24 @@ function activeFilterCount(f: Filters): number {
     return n;
 }
 
-function CheckList({ options, selected, onChange, searchable }: {
+function CheckList({ options, selected, onChange, searchable, grow }: {
     options: string[];
     selected: string[];
     onChange: (v: string[]) => void;
     searchable?: boolean;
+    grow?: boolean;
 }) {
     const [q, setQ] = useState("");
     const visible = searchable ? options.filter((o) => o.toLowerCase().includes(q.toLowerCase())) : options;
     const toggle = (val: string) =>
         onChange(selected.includes(val) ? selected.filter((x) => x !== val) : [...selected, val]);
     return (
-        <div>
+        <div className={grow ? "flex flex-col flex-1 min-h-0" : ""}>
             {searchable && (
                 <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск..."
                     className="w-full mb-2 px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400" />
             )}
-            <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
+            <div className={grow ? "flex-1 min-h-0 overflow-y-auto space-y-1 pr-1" : "max-h-48 overflow-y-auto space-y-1 pr-1"}>
                 {visible.map((opt) => (
                     <label key={opt} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded px-1 py-0.5">
                         <input type="checkbox" checked={selected.includes(opt)} onChange={() => toggle(opt)} className="accent-purple-600" />
@@ -207,9 +209,9 @@ function CheckList({ options, selected, onChange, searchable }: {
     );
 }
 
-function FilterSection({ title, children }: { title: string; children: React.ReactNode }) {
+function FilterSection({ title, children, grow }: { title: string; children: React.ReactNode; grow?: boolean }) {
     return (
-        <div>
+        <div className={grow ? "flex flex-col flex-1 min-h-0" : ""}>
             <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">{title}</p>
             {children}
         </div>
@@ -287,13 +289,28 @@ export default function UserCarts() {
                     if (!s.isSyncing) {
                         clearInterval(pollingRef.current!);
 
-                        // Phase 2: order status sync
-                        setSyncProgress({ current: 1, total: 1, percent: 95, phase: "orders" });
+                        // Phase 2: order status sync — start with 0/0, real progress via polling
+                        setSyncProgress({ current: 0, total: 0, percent: 0, phase: "orders" });
+
+                        // Poll /order-sync-status every 600ms to get real per-phone progress
+                        const orderProgressInterval = setInterval(async () => {
+                            try {
+                                const orderState = await getOrderSyncStatus(token);
+                                const { current, total } = orderState.syncProgress ?? { current: 0, total: 0 };
+                                if (total > 0) {
+                                    const pct = Math.round((current / total) * 100);
+                                    setSyncProgress({ current, total, percent: pct, phase: "orders" });
+                                }
+                            } catch { /* ignore */ }
+                        }, 600);
+
                         let orderResult = null;
                         try {
                             orderResult = await triggerOrderSync(token);
                         } catch {
                             // order sync failure is non-critical
+                        } finally {
+                            clearInterval(orderProgressInterval);
                         }
 
                         // Reload once after both phases complete
@@ -401,7 +418,10 @@ export default function UserCarts() {
             });
         }
         if (filters.sources.length) result = result.filter((c) => filters.sources.includes(c.source ?? ""));
-        if (filters.commentUsers.length) result = result.filter((c) => filters.commentUsers.includes(c.comment_by ?? ""));
+        if (filters.commentUsers.length) result = result.filter((c) => {
+            if (!c.comment_by) return filters.commentUsers.includes("(Пустой)");
+            return filters.commentUsers.includes(c.comment_by);
+        });
         if (filters.orderStatus) result = result.filter((c) => (c.order_status ?? "pending") === filters.orderStatus);
         return result;
     }, [allCarts, query, filters]);
@@ -773,9 +793,9 @@ export default function UserCarts() {
                                     </select>
                                 </div>
                             </div>
-                            <div>
-                                <FilterSection title={t.pharmacyName || "Аптека"}>
-                                    <CheckList options={allPharmacies} selected={pendingFilters.pharmacies} onChange={(v) => setPendingFilters((f) => ({ ...f, pharmacies: v }))} searchable />
+                            <div className="flex flex-col">
+                                <FilterSection title={t.pharmacyName || "Аптека"} grow>
+                                    <CheckList options={allPharmacies} selected={pendingFilters.pharmacies} onChange={(v) => setPendingFilters((f) => ({ ...f, pharmacies: v }))} searchable grow />
                                 </FilterSection>
                             </div>
                             <div className="space-y-5">
@@ -803,11 +823,14 @@ export default function UserCarts() {
                                 <FilterSection title={t.sourceLabel || "Источник"}>
                                     <CheckList options={allSources} selected={pendingFilters.sources} onChange={(v) => setPendingFilters((f) => ({ ...f, sources: v }))} />
                                 </FilterSection>
-                                {allCommentUsers.length > 0 && (
-                                    <FilterSection title="Пользователь">
-                                        <CheckList options={allCommentUsers} selected={pendingFilters.commentUsers} onChange={(v) => setPendingFilters((f) => ({ ...f, commentUsers: v }))} searchable />
-                                    </FilterSection>
-                                )}
+                                <FilterSection title="Пользователь">
+                                    <CheckList
+                                        options={["(Пустой)", ...allCommentUsers]}
+                                        selected={pendingFilters.commentUsers}
+                                        onChange={(v) => setPendingFilters((f) => ({ ...f, commentUsers: v }))}
+                                        searchable
+                                    />
+                                </FilterSection>
                             </div>
                         </div>
 

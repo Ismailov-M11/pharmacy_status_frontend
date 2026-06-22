@@ -236,6 +236,7 @@ export interface OrderSyncState {
   lastSyncError: string | null;
   lastSyncResult: { delivered: number; cancelled: number; checked: number };
   hasToken: boolean;
+  syncProgress: { current: number; total: number };
 }
 
 export async function getOrderSyncStatus(token: string): Promise<OrderSyncState> {
