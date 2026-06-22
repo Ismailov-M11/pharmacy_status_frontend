@@ -8,11 +8,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { UserCartModal } from "@/components/UserCartModal";
 import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-} from "@/components/ui/sheet";
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import {
     RefreshCw,
     ChevronLeft,
@@ -302,9 +302,9 @@ export default function UserCarts() {
                     </Button>
                 </div>
 
-                {/* Search + Filter bar */}
+                {/* Search + Filter bar — full width */}
                 <div className="flex items-center gap-2 mb-4">
-                    <div className="relative flex-1 max-w-md">
+                    <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <Input
                             value={query}
@@ -322,6 +322,13 @@ export default function UserCarts() {
                         )}
                     </div>
 
+                    {activeCount > 0 && (
+                        <Button variant="ghost" size="sm" onClick={resetFilters} className="gap-1 text-gray-500 shrink-0">
+                            <X className="h-3.5 w-3.5" />
+                            {t.reset}
+                        </Button>
+                    )}
+
                     <Button
                         variant={activeCount > 0 ? "default" : "outline"}
                         onClick={openFilter}
@@ -335,13 +342,6 @@ export default function UserCarts() {
                             </span>
                         )}
                     </Button>
-
-                    {activeCount > 0 && (
-                        <Button variant="ghost" size="sm" onClick={resetFilters} className="gap-1 text-gray-500 shrink-0">
-                            <X className="h-3.5 w-3.5" />
-                            {t.reset}
-                        </Button>
-                    )}
                 </div>
 
                 {/* Results count when filtered */}
@@ -485,121 +485,127 @@ export default function UserCarts() {
                 </Card>
             </main>
 
-            {/* ─── Filter Sheet ─────────────────────────────────────────────────── */}
-            <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
-                <SheetContent side="right" className="w-80 sm:w-96 overflow-y-auto flex flex-col gap-0 p-0">
-                    <SheetHeader className="px-6 pt-6 pb-4 border-b border-gray-200 dark:border-gray-700">
-                        <SheetTitle className="flex items-center gap-2">
+            {/* ─── Filter Dialog (centered) ─────────────────────────────────── */}
+            <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
+                <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0">
+                    <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
+                        <DialogTitle className="flex items-center gap-2">
                             <SlidersHorizontal className="h-4 w-4 text-purple-600" />
                             {t.filter}
-                        </SheetTitle>
-                    </SheetHeader>
+                        </DialogTitle>
+                    </DialogHeader>
 
-                    <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+                    <div className="flex-1 overflow-y-auto px-6 py-5">
+                        <div className="grid grid-cols-2 gap-6">
 
-                        {/* Date range */}
-                        <FilterSection title={t.period || "Период"}>
-                            <div className="space-y-2">
-                                <div>
-                                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{t.dateFrom || "От"}</label>
+                            {/* Date range */}
+                            <div className="col-span-2">
+                                <FilterSection title={t.period || "Период"}>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{t.dateFrom || "От"}</label>
+                                            <input
+                                                type="date"
+                                                value={pendingFilters.dateFrom}
+                                                onChange={(e) => setPendingFilters((f) => ({ ...f, dateFrom: e.target.value }))}
+                                                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{t.dateTo || "До"}</label>
+                                            <input
+                                                type="date"
+                                                value={pendingFilters.dateTo}
+                                                onChange={(e) => setPendingFilters((f) => ({ ...f, dateTo: e.target.value }))}
+                                                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
+                                            />
+                                        </div>
+                                    </div>
+                                </FilterSection>
+                            </div>
+
+                            {/* Pharmacies */}
+                            <div>
+                                <FilterSection title={t.pharmacyName || "Аптека"}>
+                                    <CheckList
+                                        options={allPharmacies}
+                                        selected={pendingFilters.pharmacies}
+                                        onChange={(v) => setPendingFilters((f) => ({ ...f, pharmacies: v }))}
+                                        searchable
+                                    />
+                                </FilterSection>
+                            </div>
+
+                            {/* Right column: items count + total + promo + source */}
+                            <div className="space-y-5">
+                                <FilterSection title={t.itemsCount || "Кол-во товаров"}>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            placeholder="от"
+                                            value={pendingFilters.itemsMin}
+                                            onChange={(e) => setPendingFilters((f) => ({ ...f, itemsMin: e.target.value }))}
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
+                                        />
+                                        <span className="text-gray-400 shrink-0">—</span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            placeholder="до"
+                                            value={pendingFilters.itemsMax}
+                                            onChange={(e) => setPendingFilters((f) => ({ ...f, itemsMax: e.target.value }))}
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
+                                        />
+                                    </div>
+                                </FilterSection>
+
+                                <FilterSection title={t.grandTotal || "Сумма итого"}>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            placeholder="от"
+                                            value={pendingFilters.totalMin}
+                                            onChange={(e) => setPendingFilters((f) => ({ ...f, totalMin: e.target.value }))}
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
+                                        />
+                                        <span className="text-gray-400 shrink-0">—</span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            placeholder="до"
+                                            value={pendingFilters.totalMax}
+                                            onChange={(e) => setPendingFilters((f) => ({ ...f, totalMax: e.target.value }))}
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
+                                        />
+                                    </div>
+                                </FilterSection>
+
+                                <FilterSection title={t.promoCode || "Промокод"}>
                                     <input
-                                        type="date"
-                                        value={pendingFilters.dateFrom}
-                                        onChange={(e) => setPendingFilters((f) => ({ ...f, dateFrom: e.target.value }))}
+                                        type="text"
+                                        placeholder="WELCOME_THREE..."
+                                        value={pendingFilters.promoCode}
+                                        onChange={(e) => setPendingFilters((f) => ({ ...f, promoCode: e.target.value }))}
                                         className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
                                     />
-                                </div>
-                                <div>
-                                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{t.dateTo || "До"}</label>
-                                    <input
-                                        type="date"
-                                        value={pendingFilters.dateTo}
-                                        onChange={(e) => setPendingFilters((f) => ({ ...f, dateTo: e.target.value }))}
-                                        className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
+                                </FilterSection>
+
+                                <FilterSection title={t.sourceLabel || "Источник"}>
+                                    <CheckList
+                                        options={allSources}
+                                        selected={pendingFilters.sources}
+                                        onChange={(v) => setPendingFilters((f) => ({ ...f, sources: v }))}
                                     />
-                                </div>
+                                </FilterSection>
                             </div>
-                        </FilterSection>
 
-                        {/* Pharmacies */}
-                        <FilterSection title={t.pharmacyName || "Аптека"}>
-                            <CheckList
-                                options={allPharmacies}
-                                selected={pendingFilters.pharmacies}
-                                onChange={(v) => setPendingFilters((f) => ({ ...f, pharmacies: v }))}
-                                searchable
-                            />
-                        </FilterSection>
-
-                        {/* Items count */}
-                        <FilterSection title={t.itemsCount || "Кол-во товаров"}>
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="number"
-                                    min="0"
-                                    placeholder="от"
-                                    value={pendingFilters.itemsMin}
-                                    onChange={(e) => setPendingFilters((f) => ({ ...f, itemsMin: e.target.value }))}
-                                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
-                                />
-                                <span className="text-gray-400 shrink-0">—</span>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    placeholder="до"
-                                    value={pendingFilters.itemsMax}
-                                    onChange={(e) => setPendingFilters((f) => ({ ...f, itemsMax: e.target.value }))}
-                                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
-                                />
-                            </div>
-                        </FilterSection>
-
-                        {/* Total amount */}
-                        <FilterSection title={t.grandTotal || "Сумма итого"}>
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="number"
-                                    min="0"
-                                    placeholder="от"
-                                    value={pendingFilters.totalMin}
-                                    onChange={(e) => setPendingFilters((f) => ({ ...f, totalMin: e.target.value }))}
-                                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
-                                />
-                                <span className="text-gray-400 shrink-0">—</span>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    placeholder="до"
-                                    value={pendingFilters.totalMax}
-                                    onChange={(e) => setPendingFilters((f) => ({ ...f, totalMax: e.target.value }))}
-                                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
-                                />
-                            </div>
-                        </FilterSection>
-
-                        {/* Promo code */}
-                        <FilterSection title={t.promoCode || "Промокод"}>
-                            <input
-                                type="text"
-                                placeholder="WELCOME_THREE..."
-                                value={pendingFilters.promoCode}
-                                onChange={(e) => setPendingFilters((f) => ({ ...f, promoCode: e.target.value }))}
-                                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-purple-400"
-                            />
-                        </FilterSection>
-
-                        {/* Source */}
-                        <FilterSection title={t.sourceLabel || "Источник"}>
-                            <CheckList
-                                options={allSources}
-                                selected={pendingFilters.sources}
-                                onChange={(v) => setPendingFilters((f) => ({ ...f, sources: v }))}
-                            />
-                        </FilterSection>
+                        </div>
                     </div>
 
-                    {/* Footer buttons */}
-                    <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex gap-2">
+                    {/* Footer */}
+                    <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex gap-2 shrink-0">
                         <Button onClick={applyFilters} className="flex-1">
                             {t.apply}
                         </Button>
@@ -611,8 +617,8 @@ export default function UserCarts() {
                             {t.reset}
                         </Button>
                     </div>
-                </SheetContent>
-            </Sheet>
+                </DialogContent>
+            </Dialog>
 
             {/* Cart detail modal */}
             <UserCartModal
