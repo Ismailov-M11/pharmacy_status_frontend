@@ -362,9 +362,14 @@ export default function UserCarts() {
 
     const closeCart = () => {
         setSelectedCart(null);
-        // Reload to reflect status changes (processed/unprocessed) after comments
-        loadCarts();
-        loadSyncStatus();
+        // Silent reload — no isLoading toggle to preserve scroll position
+        if (token) {
+            const historyFilters = filters.historyStatuses.length || filters.historyDateFrom || filters.historyDateTo
+                ? { historyStatuses: filters.historyStatuses, historyDateFrom: filters.historyDateFrom, historyDateTo: filters.historyDateTo }
+                : {};
+            getUserCarts(token, historyFilters).then((res) => setAllCarts(res.data)).catch(() => {});
+            loadSyncStatus();
+        }
     };
 
     // ─── Derived filter options ────────────────────────────────────────────────
