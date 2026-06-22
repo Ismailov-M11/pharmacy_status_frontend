@@ -234,7 +234,7 @@ export function statusBadgeClasses(color: string): string {
 
 // ─── Comments tab ─────────────────────────────────────────────────────────────
 const ORDER_STATUS_LOCK: Record<string, { label: string; cls: string }> = {
-    in_progress: { label: "Заказ передан в доставку — обновление статуса недоступно", cls: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300" },
+    in_progress: { label: "Заказ доставляется — обновление статуса недоступно",        cls: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300" },
     delivered:   { label: "Заказ доставлен — обновление статуса недоступно",          cls: "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300" },
     cancelled:   { label: "Заказ отменён — обновление статуса недоступно",            cls: "bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300" },
     deleted:     { label: "Корзина удалена клиентом — обновление статуса недоступно", cls: "bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400" },

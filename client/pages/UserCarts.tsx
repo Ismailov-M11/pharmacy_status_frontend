@@ -102,11 +102,11 @@ function SyncProgressBar({ progress }: { progress: { current: number; total: num
 
 // ─── Order status badge ────────────────────────────────────────────────────────
 const ORDER_STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
-    pending:     { label: "Ожидает",    cls: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400" },
-    in_progress: { label: "В процессе", cls: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300" },
-    delivered:   { label: "Доставлен",  cls: "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300" },
-    cancelled:   { label: "Отменён",    cls: "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300" },
-    deleted:     { label: "Удалён",     cls: "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 line-through" },
+    pending:     { label: "Ожидает",      cls: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400" },
+    in_progress: { label: "Доставляется", cls: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300" },
+    delivered:   { label: "Доставлен",    cls: "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300" },
+    cancelled:   { label: "Отменён",      cls: "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300" },
+    deleted:     { label: "Удалён",       cls: "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 line-through" },
 };
 
 function OrderStatusBadge({ status }: { status: string }) {
