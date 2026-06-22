@@ -67,7 +67,7 @@ function MapTab({ cart }: { cart: UserCart }) {
             mapRef.current = new window.ymaps.Map(containerRef.current, {
                 center: defaultCenter,
                 zoom: 13,
-                controls: ["zoomControl"],
+                controls: ["zoomControl", "fullscreenControl"],
             }, { suppressMapOpenBlock: true });
             initializedRef.current = true;
 
