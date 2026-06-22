@@ -4,15 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
 import { RefreshCw, ChevronDown, ChevronRight, ChevronLeft, Tag } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -47,9 +39,7 @@ export default function UserCarts() {
 
     useEffect(() => {
         if (authLoading) return;
-        if (!isAuthenticated) {
-            navigate("/login");
-        }
+        if (!isAuthenticated) navigate("/login");
     }, [authLoading, isAuthenticated, navigate]);
 
     const load = useCallback(
@@ -70,9 +60,7 @@ export default function UserCarts() {
     );
 
     useEffect(() => {
-        if (!authLoading && isAuthenticated) {
-            load(page);
-        }
+        if (!authLoading && isAuthenticated) load(page);
     }, [authLoading, isAuthenticated, page, load]);
 
     const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -80,8 +68,7 @@ export default function UserCarts() {
     const toggleExpand = (id: number) => {
         setExpandedIds((prev) => {
             const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
+            next.has(id) ? next.delete(id) : next.add(id);
             return next;
         });
     };
@@ -98,7 +85,7 @@ export default function UserCarts() {
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             <Header />
 
-            <main className="w-full px-4 sm:px-6 lg:px-8 py-6">
+            <main className="w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
                 {/* Page header */}
                 <div className="flex items-center justify-between mb-6">
                     <div>
@@ -125,267 +112,291 @@ export default function UserCarts() {
                     </Button>
                 </div>
 
-                {/* Table card */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-gray-50 dark:bg-gray-900/50">
-                                    <TableHead className="w-10" />
-                                    <TableHead className="w-12 text-center">№</TableHead>
-                                    <TableHead className="w-20">{t.cartId}</TableHead>
-                                    <TableHead className="min-w-[130px]">{t.date}</TableHead>
-                                    <TableHead className="min-w-[150px]">{t.customer}</TableHead>
-                                    <TableHead className="min-w-[120px]">{t.phone}</TableHead>
-                                    <TableHead className="min-w-[180px]">{t.pharmacyName}</TableHead>
-                                    <TableHead className="min-w-[200px]">{t.address}</TableHead>
-                                    <TableHead className="w-20 text-center">{t.itemsCount}</TableHead>
-                                    <TableHead className="min-w-[130px] text-right">{t.marketTotal}</TableHead>
-                                    <TableHead className="min-w-[100px] text-right">{t.deliveryFee}</TableHead>
-                                    <TableHead className="min-w-[110px] text-right">{t.serviceFee}</TableHead>
-                                    <TableHead className="min-w-[130px] text-right font-semibold">{t.grandTotal}</TableHead>
-                                    <TableHead className="min-w-[110px]">{t.promoCode}</TableHead>
-                                    <TableHead className="min-w-[110px]">{t.sourceLabel}</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {isLoading ? (
-                                    Array.from({ length: 10 }).map((_, i) => (
-                                        <TableRow key={i}>
-                                            {Array.from({ length: 15 }).map((_, j) => (
-                                                <TableCell key={j}>
-                                                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                    ))
-                                ) : orders.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={15} className="text-center py-12 text-gray-400 dark:text-gray-500">
-                                            {t.noData}
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    orders.map((order, idx) => {
-                                        const expanded = expandedIds.has(order.id);
-                                        const rowNum = page * PAGE_SIZE + idx + 1;
-                                        return (
-                                            <>
-                                                <TableRow
-                                                    key={order.id}
-                                                    className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                                                    onClick={() => toggleExpand(order.id)}
-                                                >
-                                                    {/* Expand toggle */}
-                                                    <TableCell className="pl-4">
-                                                        {expanded ? (
-                                                            <ChevronDown className="h-4 w-4 text-gray-400" />
-                                                        ) : (
-                                                            <ChevronRight className="h-4 w-4 text-gray-400" />
-                                                        )}
-                                                    </TableCell>
+                <Card>
+                    <CardContent className="pt-6">
+                        {isLoading ? (
+                            <div className="h-96 bg-gray-200 dark:bg-gray-700 animate-pulse rounded-lg" />
+                        ) : orders.length === 0 ? (
+                            <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+                                {t.noData}
+                            </p>
+                        ) : (
+                            <>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                                                <th className="py-3 px-3 w-8" />
+                                                <th className="text-left py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                                    №
+                                                </th>
+                                                <th className="text-left py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                                    ID
+                                                </th>
+                                                <th className="text-left py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                                    {t.date}
+                                                </th>
+                                                <th className="text-left py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                                    {t.customer}
+                                                </th>
+                                                <th className="text-left py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                                    {t.phone}
+                                                </th>
+                                                <th className="text-left py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                                    {t.pharmacyName}
+                                                </th>
+                                                <th className="text-left py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                                    {t.address}
+                                                </th>
+                                                <th className="text-center py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                                    {t.itemsCount}
+                                                </th>
+                                                <th className="text-right py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                                    {t.marketTotal}
+                                                </th>
+                                                <th className="text-right py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                                    {t.deliveryFee}
+                                                </th>
+                                                <th className="text-right py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                                    {t.serviceFee}
+                                                </th>
+                                                <th className="text-right py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                                    {t.grandTotal}
+                                                </th>
+                                                <th className="text-left py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                                    {t.promoCode}
+                                                </th>
+                                                <th className="text-left py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                                    {t.sourceLabel}
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {orders.map((order, idx) => {
+                                                const expanded = expandedIds.has(order.id);
+                                                const rowNum = page * PAGE_SIZE + idx + 1;
 
-                                                    {/* Row number */}
-                                                    <TableCell className="text-center text-gray-400 text-sm">
-                                                        {rowNum}
-                                                    </TableCell>
+                                                return (
+                                                    <>
+                                                        <tr
+                                                            key={order.id}
+                                                            onClick={() => toggleExpand(order.id)}
+                                                            className="border-b border-gray-100 dark:border-gray-800 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors cursor-pointer"
+                                                        >
+                                                            {/* Expand icon */}
+                                                            <td className="py-3 px-3 text-gray-400 dark:text-gray-500">
+                                                                {expanded
+                                                                    ? <ChevronDown className="h-4 w-4" />
+                                                                    : <ChevronRight className="h-4 w-4" />
+                                                                }
+                                                            </td>
 
-                                                    {/* ID */}
-                                                    <TableCell className="font-mono text-sm text-gray-700 dark:text-gray-300">
-                                                        #{order.id}
-                                                    </TableCell>
+                                                            {/* № */}
+                                                            <td className="py-3 px-3 text-gray-500 dark:text-gray-400">
+                                                                {rowNum}
+                                                            </td>
 
-                                                    {/* Date */}
-                                                    <TableCell className="text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                                                        {format(new Date(order.creationDate), "dd.MM.yyyy HH:mm")}
-                                                    </TableCell>
+                                                            {/* ID */}
+                                                            <td className="py-3 px-3 font-medium text-purple-700 dark:text-purple-400 whitespace-nowrap">
+                                                                #{order.id}
+                                                            </td>
 
-                                                    {/* Customer name */}
-                                                    <TableCell className="text-sm text-gray-700 dark:text-gray-300">
-                                                        {customerName(order)}
-                                                    </TableCell>
+                                                            {/* Date */}
+                                                            <td className="py-3 px-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                                                                {format(new Date(order.creationDate), "dd.MM.yyyy HH:mm")}
+                                                            </td>
 
-                                                    {/* Phone */}
-                                                    <TableCell className="text-sm font-mono text-gray-700 dark:text-gray-300">
-                                                        {order.customer.phone}
-                                                    </TableCell>
+                                                            {/* Customer */}
+                                                            <td className="py-3 px-3 text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                                                                {customerName(order)}
+                                                            </td>
 
-                                                    {/* Market name */}
-                                                    <TableCell className="text-sm text-gray-700 dark:text-gray-300">
-                                                        {order.market.name}
-                                                    </TableCell>
+                                                            {/* Phone */}
+                                                            <td className="py-3 px-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                                                                {order.customer.phone}
+                                                            </td>
 
-                                                    {/* Address */}
-                                                    <TableCell className="text-sm text-gray-500 dark:text-gray-400 max-w-[220px] truncate" title={order.market.address}>
-                                                        {order.market.address}
-                                                    </TableCell>
+                                                            {/* Market */}
+                                                            <td className="py-3 px-3 text-gray-900 dark:text-gray-100">
+                                                                {order.market.name}
+                                                            </td>
 
-                                                    {/* Items count */}
-                                                    <TableCell className="text-center">
-                                                        <Badge variant="secondary" className="text-xs">
-                                                            {order.items.length}
-                                                        </Badge>
-                                                    </TableCell>
+                                                            {/* Address */}
+                                                            <td className="py-3 px-3 text-gray-500 dark:text-gray-400 max-w-[200px] truncate">
+                                                                {order.market.address}
+                                                            </td>
 
-                                                    {/* Market total */}
-                                                    <TableCell className="text-right text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                                                        {formatSum(order.invoice.marketTotal)} {t.sum}
-                                                    </TableCell>
+                                                            {/* Items count */}
+                                                            <td className="py-3 px-3 text-center">
+                                                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs font-semibold">
+                                                                    {order.items.length}
+                                                                </span>
+                                                            </td>
 
-                                                    {/* Delivery */}
-                                                    <TableCell className="text-right text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                                                        {formatSum(order.invoice.deliveryTotal)} {t.sum}
-                                                    </TableCell>
+                                                            {/* Market total */}
+                                                            <td className="py-3 px-3 text-right text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                                                                {formatSum(order.invoice.marketTotal)} {t.sum}
+                                                            </td>
 
-                                                    {/* Service fee */}
-                                                    <TableCell className="text-right text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                                        {formatSum(order.invoice.serviceTotal)} {t.sum}
-                                                    </TableCell>
+                                                            {/* Delivery */}
+                                                            <td className="py-3 px-3 text-right text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                                                                {formatSum(order.invoice.deliveryTotal)} {t.sum}
+                                                            </td>
 
-                                                    {/* Grand total */}
-                                                    <TableCell className="text-right font-semibold text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                                                        {formatSum(order.invoice.total)} {t.sum}
-                                                    </TableCell>
+                                                            {/* Service fee */}
+                                                            <td className="py-3 px-3 text-right text-gray-500 dark:text-gray-500 whitespace-nowrap">
+                                                                {formatSum(order.invoice.serviceTotal)} {t.sum}
+                                                            </td>
 
-                                                    {/* Promo code */}
-                                                    <TableCell>
-                                                        {order.invoice.promoCode ? (
-                                                            <Badge variant="outline" className="text-xs gap-1 text-purple-600 border-purple-300 dark:text-purple-400 dark:border-purple-700">
-                                                                <Tag className="h-2.5 w-2.5" />
-                                                                {order.invoice.promoCode.code}
-                                                            </Badge>
-                                                        ) : (
-                                                            <span className="text-gray-300 dark:text-gray-600">—</span>
-                                                        )}
-                                                    </TableCell>
+                                                            {/* Grand total */}
+                                                            <td className="py-3 px-3 text-right font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                                                                {formatSum(order.invoice.total)} {t.sum}
+                                                            </td>
 
-                                                    {/* Source */}
-                                                    <TableCell>
-                                                        <Badge variant="secondary" className="text-xs">
-                                                            {order.source}
-                                                        </Badge>
-                                                    </TableCell>
-                                                </TableRow>
+                                                            {/* Promo code */}
+                                                            <td className="py-3 px-3 whitespace-nowrap">
+                                                                {order.invoice.promoCode ? (
+                                                                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400">
+                                                                        <Tag className="h-2.5 w-2.5" />
+                                                                        {order.invoice.promoCode.code}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-gray-300 dark:text-gray-600">—</span>
+                                                                )}
+                                                            </td>
 
-                                                {/* Expanded items row */}
-                                                {expanded && (
-                                                    <TableRow key={`${order.id}-items`} className="bg-purple-50/50 dark:bg-purple-900/10">
-                                                        <TableCell colSpan={15} className="px-8 pb-4 pt-2">
-                                                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
-                                                                {t.expandItems}
-                                                            </p>
-                                                            <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                                                                <table className="w-full text-sm">
-                                                                    <thead>
-                                                                        <tr className="bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-xs">
-                                                                            <th className="px-3 py-2 text-left font-medium">{t.productName}</th>
-                                                                            <th className="px-3 py-2 text-left font-medium">{t.manufacturer}</th>
-                                                                            <th className="px-3 py-2 text-center font-medium">{t.quantity}</th>
-                                                                            <th className="px-3 py-2 text-right font-medium">{t.price}</th>
-                                                                            <th className="px-3 py-2 text-right font-medium">{t.total}</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {order.items.map((item, itemIdx) => (
-                                                                            <tr
-                                                                                key={item.id}
-                                                                                className={`${
-                                                                                    itemIdx % 2 === 0
-                                                                                        ? "bg-white dark:bg-gray-800/50"
-                                                                                        : "bg-gray-50 dark:bg-gray-800/30"
-                                                                                }`}
-                                                                            >
-                                                                                <td className="px-3 py-2.5 text-gray-800 dark:text-gray-200 font-medium">
-                                                                                    {item.name}
-                                                                                </td>
-                                                                                <td className="px-3 py-2.5 text-gray-500 dark:text-gray-400 text-xs">
-                                                                                    {item.manufacturer}
-                                                                                </td>
-                                                                                <td className="px-3 py-2.5 text-center text-gray-700 dark:text-gray-300">
-                                                                                    {item.quantity}
-                                                                                </td>
-                                                                                <td className="px-3 py-2.5 text-right text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                                                                                    {formatSum(item.price)} {t.sum}
-                                                                                </td>
-                                                                                <td className="px-3 py-2.5 text-right font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                                                                                    {formatSum(item.total)} {t.sum}
-                                                                                </td>
+                                                            {/* Source */}
+                                                            <td className="py-3 px-3 whitespace-nowrap">
+                                                                <span className="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                                                                    {order.source}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+
+                                                        {/* Expanded items sub-table */}
+                                                        {expanded && (
+                                                            <tr key={`${order.id}-items`} className="bg-purple-50/50 dark:bg-purple-900/10">
+                                                                <td colSpan={15} className="px-8 py-3">
+                                                                    <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">
+                                                                        {t.expandItems}
+                                                                    </p>
+                                                                    <table className="w-full text-sm">
+                                                                        <thead>
+                                                                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                                                                                <th className="text-left py-2 px-3 font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                                                                                    {t.productName}
+                                                                                </th>
+                                                                                <th className="text-left py-2 px-3 font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                                                                                    {t.manufacturer}
+                                                                                </th>
+                                                                                <th className="text-center py-2 px-3 font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                                                                                    {t.quantity}
+                                                                                </th>
+                                                                                <th className="text-right py-2 px-3 font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                                                                                    {t.price}
+                                                                                </th>
+                                                                                <th className="text-right py-2 px-3 font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                                                                                    {t.total}
+                                                                                </th>
                                                                             </tr>
-                                                                        ))}
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                )}
-                                            </>
-                                        );
-                                    })
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-
-                    {/* Pagination */}
-                    {!isLoading && totalPages > 1 && (
-                        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700">
-                            <span className="text-sm text-gray-500 dark:text-gray-400">
-                                {t.page} {page + 1} {t.of} {totalPages} &nbsp;·&nbsp; {total} {t.orders}
-                            </span>
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setPage((p) => Math.max(0, p - 1))}
-                                    disabled={page === 0}
-                                    className="gap-1"
-                                >
-                                    <ChevronLeft className="h-4 w-4" />
-                                </Button>
-                                <div className="flex items-center gap-1">
-                                    {Array.from({ length: Math.min(totalPages, 7) }).map((_, i) => {
-                                        let pageNum: number;
-                                        if (totalPages <= 7) {
-                                            pageNum = i;
-                                        } else if (page < 4) {
-                                            pageNum = i < 5 ? i : i === 5 ? -1 : totalPages - 1;
-                                        } else if (page >= totalPages - 4) {
-                                            pageNum = i === 0 ? 0 : i === 1 ? -1 : totalPages - (7 - i);
-                                        } else {
-                                            const map: { [k: number]: number } = {
-                                                0: 0, 1: -1, 2: page - 1, 3: page, 4: page + 1, 5: -1, 6: totalPages - 1,
-                                            };
-                                            pageNum = map[i];
-                                        }
-                                        if (pageNum === -1) {
-                                            return <span key={i} className="px-1 text-gray-400">…</span>;
-                                        }
-                                        return (
-                                            <Button
-                                                key={i}
-                                                variant={pageNum === page ? "default" : "ghost"}
-                                                size="sm"
-                                                className="w-8 h-8 p-0 text-xs"
-                                                onClick={() => setPage(pageNum)}
-                                            >
-                                                {pageNum + 1}
-                                            </Button>
-                                        );
-                                    })}
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            {order.items.map((item) => (
+                                                                                <tr
+                                                                                    key={item.id}
+                                                                                    className="border-b border-gray-100 dark:border-gray-800 last:border-0"
+                                                                                >
+                                                                                    <td className="py-2 px-3 text-gray-900 dark:text-gray-100 font-medium">
+                                                                                        {item.name}
+                                                                                    </td>
+                                                                                    <td className="py-2 px-3 text-gray-500 dark:text-gray-400 text-xs">
+                                                                                        {item.manufacturer}
+                                                                                    </td>
+                                                                                    <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">
+                                                                                        {item.quantity}
+                                                                                    </td>
+                                                                                    <td className="py-2 px-3 text-right text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                                                                                        {formatSum(item.price)} {t.sum}
+                                                                                    </td>
+                                                                                    <td className="py-2 px-3 text-right font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                                                                                        {formatSum(item.total)} {t.sum}
+                                                                                    </td>
+                                                                                </tr>
+                                                                            ))}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
                                 </div>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                                    disabled={page >= totalPages - 1}
-                                    className="gap-1"
-                                >
-                                    <ChevronRight className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-                </div>
+
+                                {/* Footer: count + pagination */}
+                                <div className="mt-4 flex items-center justify-between gap-4 flex-wrap">
+                                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                                        {t.shown}: {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} {t.of} {total}
+                                    </span>
+
+                                    {totalPages > 1 && (
+                                        <div className="flex items-center gap-1">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                                                disabled={page === 0}
+                                                className="h-8 w-8 p-0"
+                                            >
+                                                <ChevronLeft className="h-4 w-4" />
+                                            </Button>
+
+                                            {(() => {
+                                                const pages: (number | "…")[] = [];
+                                                if (totalPages <= 7) {
+                                                    for (let i = 0; i < totalPages; i++) pages.push(i);
+                                                } else if (page < 4) {
+                                                    pages.push(0, 1, 2, 3, 4, "…", totalPages - 1);
+                                                } else if (page >= totalPages - 4) {
+                                                    pages.push(0, "…", totalPages - 5, totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1);
+                                                } else {
+                                                    pages.push(0, "…", page - 1, page, page + 1, "…", totalPages - 1);
+                                                }
+                                                return pages.map((p, i) =>
+                                                    p === "…" ? (
+                                                        <span key={`ellipsis-${i}`} className="px-1 text-gray-400 text-sm">…</span>
+                                                    ) : (
+                                                        <Button
+                                                            key={p}
+                                                            variant={p === page ? "default" : "ghost"}
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 text-xs"
+                                                            onClick={() => setPage(p as number)}
+                                                        >
+                                                            {(p as number) + 1}
+                                                        </Button>
+                                                    )
+                                                );
+                                            })()}
+
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                                                disabled={page >= totalPages - 1}
+                                                className="h-8 w-8 p-0"
+                                            >
+                                                <ChevronRight className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
             </main>
         </div>
     );
