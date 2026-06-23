@@ -1215,22 +1215,23 @@ export default function UserCarts() {
                     }
                 }}
             >
-                <AlertDialogContent className="max-w-sm">
+                <AlertDialogContent className="max-w-md">
                     <AlertDialogHeader>
-                        <div className="flex items-start gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
-                                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                        <div className="flex flex-col items-center gap-4 py-2 text-center">
+                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+                                <AlertTriangle className="h-8 w-8 text-amber-500 dark:text-amber-400" />
                             </div>
-                            <div>
-                                <AlertDialogTitle>Клиент уже обрабатывается</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    <span className="font-medium text-amber-600 dark:text-amber-400">{claimWarning}</span> сейчас работает с этим клиентом
+                            <div className="space-y-1.5">
+                                <AlertDialogTitle className="text-xl">Клиент уже обрабатывается</AlertDialogTitle>
+                                <AlertDialogDescription className="text-base">
+                                    <span className="font-semibold text-amber-600 dark:text-amber-400">{claimWarning}</span>
+                                    {" "}сейчас работает с этим клиентом
                                 </AlertDialogDescription>
                             </div>
                         </div>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogAction className="bg-purple-600 hover:bg-purple-700 text-white">
+                    <AlertDialogFooter className="mt-2">
+                        <AlertDialogAction className="w-full bg-purple-600 hover:bg-purple-700 text-white text-base py-5">
                             Понятно
                         </AlertDialogAction>
                     </AlertDialogFooter>
