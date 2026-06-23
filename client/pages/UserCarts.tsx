@@ -282,6 +282,7 @@ export default function UserCarts() {
     const [selectedCartTab, setSelectedCartTab] = useState<"cart" | "map" | "comments">("cart");
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
     const [claimWarning, setClaimWarning] = useState<string | null>(null);
+    const [pendingCartOpen, setPendingCartOpen] = useState<{ cart: UserCart; tab: "cart" | "map" | "comments" } | null>(null);
     const expandedGroupPhoneRef = useRef<string | null>(null);
     // Always reflects latest expandedGroups — avoids stale closure in event handlers
     const expandedGroupsRef = useRef<Set<string>>(new Set());
@@ -453,12 +454,21 @@ export default function UserCarts() {
     };
 
     const claimAndOpenCart = (cart: UserCart, tab: "cart" | "map" | "comments") => {
-        openCart(cart, tab); // Open immediately, don't wait for claim
-        if (cart.customer_phone && token && user) {
-            claimCustomer(token, cart.customer_phone, user.username)
-                .then(({ previousClaimer }) => { if (previousClaimer) setClaimWarning(previousClaimer); })
-                .catch(() => {});
+        if (!cart.customer_phone || !token || !user) {
+            openCart(cart, tab);
+            return;
         }
+        claimCustomer(token, cart.customer_phone, user.username)
+            .then(({ previousClaimer }) => {
+                if (previousClaimer) {
+                    // Show warning BEFORE opening modal
+                    setClaimWarning(previousClaimer);
+                    setPendingCartOpen({ cart, tab });
+                } else {
+                    openCart(cart, tab);
+                }
+            })
+            .catch(() => openCart(cart, tab));
     };
 
     // ─── Derived filter options ────────────────────────────────────────────────
@@ -827,9 +837,9 @@ export default function UserCarts() {
                                                     <React.Fragment key={group.key}>
                                                         {/* Group summary row — zebra striping */}
                                                         <tr
-                                                            className={`border-b border-purple-200 dark:border-purple-800 cursor-pointer transition-colors ${
+                                                            className={`border-b border-gray-200 dark:border-gray-700 cursor-pointer transition-colors ${
                                                                 gIdx % 2 === 0
-                                                                    ? "bg-purple-100 dark:bg-purple-900 hover:bg-purple-200 dark:hover:bg-purple-800"
+                                                                    ? "bg-purple-50 dark:bg-purple-950 hover:bg-purple-100 dark:hover:bg-purple-900"
                                                                     : "bg-white dark:bg-gray-950 hover:bg-purple-50 dark:hover:bg-purple-950"
                                                             }`}
                                                             onClick={() => claimAndExpand(group)}
@@ -1194,7 +1204,7 @@ export default function UserCarts() {
 
             {/* ─── Claim warning dialog ───────────────────────────────────────── */}
             {claimWarning && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40" onClick={() => setClaimWarning(null)}>
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40" onClick={() => { setClaimWarning(null); if (pendingCartOpen) { openCart(pendingCartOpen.cart, pendingCartOpen.tab); setPendingCartOpen(null); } }}>
                     <div
                         className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl p-6 max-w-sm mx-4 flex flex-col gap-4"
                         onClick={e => e.stopPropagation()}
@@ -1211,7 +1221,7 @@ export default function UserCarts() {
                             </div>
                         </div>
                         <button
-                            onClick={() => setClaimWarning(null)}
+                            onClick={() => { setClaimWarning(null); if (pendingCartOpen) { openCart(pendingCartOpen.cart, pendingCartOpen.tab); setPendingCartOpen(null); } }}
                             className="self-end rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 transition-colors"
                         >
                             Понятно
