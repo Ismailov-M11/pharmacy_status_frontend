@@ -715,10 +715,10 @@ export default function UserCarts() {
                                                     <React.Fragment key={group.key}>
                                                         {/* Group summary row — zebra striping */}
                                                         <tr
-                                                            className={`border-b border-purple-100 dark:border-purple-900 cursor-pointer transition-colors ${
+                                                            className={`border-b border-purple-200 dark:border-purple-800 cursor-pointer transition-colors ${
                                                                 gIdx % 2 === 0
-                                                                    ? "bg-purple-50 dark:bg-purple-950 hover:bg-purple-100 dark:hover:bg-purple-900"
-                                                                    : "bg-white dark:bg-gray-900 hover:bg-purple-50 dark:hover:bg-purple-950"
+                                                                    ? "bg-purple-100 dark:bg-purple-900 hover:bg-purple-200 dark:hover:bg-purple-800"
+                                                                    : "bg-white dark:bg-gray-950 hover:bg-purple-50 dark:hover:bg-purple-950"
                                                             }`}
                                                             onClick={() => toggleGroup(group.key)}
                                                         >
@@ -825,10 +825,10 @@ export default function UserCarts() {
                                                         </tr>
                                                         {/* Expanded individual cart rows — zebra striping (blue tones) */}
                                                         {isExpanded && group.carts.map((cart, cIdx) => (
-                                                            <tr key={cart.id} className={`border-b border-indigo-100 dark:border-indigo-900 transition-colors ${
+                                                            <tr key={cart.id} className={`border-b border-indigo-200 dark:border-indigo-800 transition-colors ${
                                                                 cIdx % 2 === 0
-                                                                    ? "bg-indigo-50 dark:bg-indigo-950 hover:bg-indigo-100 dark:hover:bg-indigo-900"
-                                                                    : "bg-sky-50 dark:bg-sky-950 hover:bg-sky-100 dark:hover:bg-sky-900"
+                                                                    ? "bg-indigo-100 dark:bg-indigo-900 hover:bg-indigo-200 dark:hover:bg-indigo-800"
+                                                                    : "bg-sky-100 dark:bg-sky-900 hover:bg-sky-200 dark:hover:bg-sky-800"
                                                             }`}>
                                                                 <td className="py-2.5 px-3 pl-7 text-gray-300 dark:text-gray-600 text-xs">↳</td>
                                                                 <td className="py-2.5 px-3">
