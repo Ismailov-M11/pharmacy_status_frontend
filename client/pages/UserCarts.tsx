@@ -586,16 +586,16 @@ export default function UserCarts() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="h-screen overflow-hidden flex flex-col bg-gray-50 dark:bg-gray-900">
             <Header />
 
-            <main className="w-full px-2 sm:px-3 lg:px-4 py-6 sm:py-8">
+            <main className="flex-1 flex flex-col overflow-hidden w-full px-2 sm:px-3 lg:px-4 pt-3 pb-2">
 
                 {/* Page header */}
-                <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
+                <div className="flex items-center justify-between mb-3 gap-4 flex-wrap shrink-0">
                     <div className="shrink-0">
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t.userCarts}</h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t.userCarts}</h1>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                             {isSyncing || syncStatus?.isSyncing ? (
                                 <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1">
                                     <RefreshCw className="h-3 w-3 animate-spin" />
@@ -612,11 +612,11 @@ export default function UserCarts() {
                     {/* Total sum highlight */}
                     {filteredCarts.length > 0 && (
                         <div className="flex-1 flex justify-center">
-                            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-xl px-8 py-3 text-center min-w-0">
-                                <p className="text-xs font-semibold uppercase tracking-widest text-purple-500 dark:text-purple-400 mb-1">
+                            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-xl px-6 py-1.5 text-center min-w-0">
+                                <p className="text-[10px] font-semibold uppercase tracking-widest text-purple-500 dark:text-purple-400">
                                     {activeFilterCount(filters) > 0 ? "Сумма по фильтру" : "Общая сумма корзин"}
                                 </p>
-                                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300 whitespace-nowrap">
+                                <p className="text-xl font-bold text-purple-700 dark:text-purple-300 whitespace-nowrap">
                                     {formatSum(totalSum)} {t.sum}
                                 </p>
                                 {unprocessedSum > 0 && (
@@ -654,11 +654,11 @@ export default function UserCarts() {
 
                 {/* Progress bar (only when syncing) */}
                 {(isSyncing || syncStatus?.isSyncing) && (
-                    <SyncProgressBar progress={syncProgress} />
+                    <div className="shrink-0"><SyncProgressBar progress={syncProgress} /></div>
                 )}
 
                 {/* Search + Filter bar */}
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-2 mb-3 shrink-0">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <Input
@@ -691,19 +691,19 @@ export default function UserCarts() {
                 </div>
 
                 {(query || activeCount > 0) && !isLoading && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 shrink-0">
                         {filteredCarts.length === 0 ? (t.noResults ?? "Ничего не найдено") : `${t.shown}: ${filteredCarts.length}`}
                     </p>
                 )}
 
                 {/* Table */}
                 {isLoading ? (
-                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm flex flex-col items-center justify-center h-64 gap-3">
+                    <div className="flex-1 min-h-0 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm flex flex-col items-center justify-center gap-3">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
                         <span className="text-sm text-gray-500 dark:text-gray-400">Загрузка данных...</span>
                     </div>
                 ) : filteredCarts.length === 0 ? (
-                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm flex flex-col items-center justify-center py-16 gap-3 text-gray-400 dark:text-gray-500">
+                    <div className="flex-1 min-h-0 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm flex flex-col items-center justify-center gap-3 text-gray-400 dark:text-gray-500">
                         <RefreshCw className="h-10 w-10 opacity-30" />
                         <p className="text-sm font-medium">Данных нет</p>
                         <p className="text-xs text-center max-w-xs">
@@ -716,10 +716,7 @@ export default function UserCarts() {
                     </div>
                 ) : (
                     <>
-                        <div
-                            className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm overflow-auto"
-                            style={{ maxHeight: "calc(100vh - 100px)" }}
-                        >
+                        <div className="flex-1 min-h-0 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm overflow-auto">
                                     <table className="w-full text-sm">
                                         <thead className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
                                             <tr>
@@ -1034,7 +1031,7 @@ export default function UserCarts() {
                                 </div>
 
                                 {/* Pagination */}
-                                <div className="mt-4 flex items-center justify-between gap-4 flex-wrap">
+                                <div className="mt-2 shrink-0 flex items-center justify-between gap-4 flex-wrap">
                                     <span className="text-sm text-gray-600 dark:text-gray-400">
                                         {t.shown}: {Math.min(page * PAGE_SIZE + 1, filteredGroups.length)}–{Math.min((page + 1) * PAGE_SIZE, filteredGroups.length)} {t.of} {filteredGroups.length}
                                     </span>
