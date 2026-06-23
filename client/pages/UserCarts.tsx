@@ -591,15 +591,15 @@ export default function UserCarts() {
 
             <main className="flex-1 flex flex-col overflow-hidden w-full px-2 sm:px-3 lg:px-4 pt-3 pb-2">
 
-                {/* Page header */}
-                <div className="flex items-center justify-between mb-3 gap-4 flex-wrap shrink-0">
+                {/* Page header — compact single row */}
+                <div className="flex items-center justify-between gap-3 mb-2 shrink-0 flex-wrap">
+                    {/* Title */}
                     <div className="shrink-0">
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t.userCarts}</h1>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{t.userCarts}</h1>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">
                             {isSyncing || syncStatus?.isSyncing ? (
                                 <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                                    <RefreshCw className="h-3 w-3 animate-spin" />
-                                    Синхронизация...
+                                    <RefreshCw className="h-3 w-3 animate-spin" />Синхронизация...
                                 </span>
                             ) : lastSync ? (
                                 `Обновлено: ${format(new Date(lastSync), "dd.MM.yyyy HH:mm")}`
@@ -609,28 +609,27 @@ export default function UserCarts() {
                         </p>
                     </div>
 
-                    {/* Total sum highlight */}
+                    {/* Total sum — compact inline pill */}
                     {filteredCarts.length > 0 && (
-                        <div className="flex-1 flex justify-center">
-                            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-xl px-6 py-1.5 text-center min-w-0">
-                                <p className="text-[10px] font-semibold uppercase tracking-widest text-purple-500 dark:text-purple-400">
-                                    {activeFilterCount(filters) > 0 ? "Сумма по фильтру" : "Общая сумма корзин"}
-                                </p>
-                                <p className="text-xl font-bold text-purple-700 dark:text-purple-300 whitespace-nowrap">
-                                    {formatSum(totalSum)} {t.sum}
-                                </p>
-                                {unprocessedSum > 0 && (
-                                    <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1 whitespace-nowrap">
-                                        Не обработано: <span className="font-semibold">{formatSum(unprocessedSum)} {t.sum}</span>
-                                    </p>
-                                )}
-                            </div>
+                        <div className="flex items-center gap-2 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-lg px-3 py-1">
+                            <span className="text-[10px] font-semibold uppercase tracking-wide text-purple-500 dark:text-purple-400">
+                                {activeFilterCount(filters) > 0 ? "Сумма по фильтру" : "Сумма корзин"}
+                            </span>
+                            <span className="text-base font-bold text-purple-700 dark:text-purple-300 whitespace-nowrap">
+                                {formatSum(totalSum)} {t.sum}
+                            </span>
+                            {unprocessedSum > 0 && (
+                                <span className="text-[11px] text-yellow-600 dark:text-yellow-400 whitespace-nowrap border-l border-purple-200 dark:border-purple-800 pl-2">
+                                    Не обработано: <b>{formatSum(unprocessedSum)} {t.sum}</b>
+                                </span>
+                            )}
                         </div>
                     )}
 
+                    {/* Stats + actions */}
                     <div className="flex items-center gap-2 shrink-0">
                         {allCarts.length > 0 && (
-                            <div className="hidden sm:flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mr-1">
+                            <div className="hidden lg:flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mr-1">
                                 <span>{t.total || "Всего"}: <b className="text-gray-700 dark:text-gray-300">{filteredCarts.length}</b></span>
                                 <span className="text-yellow-600 dark:text-yellow-400">{filteredCarts.filter((c) => c.cart_status === "unprocessed").length} {t.unprocessed}</span>
                                 <span className="text-blue-600 dark:text-blue-400">{filteredCarts.filter((c) => c.cart_status === "processed").length} {t.processed}</span>
