@@ -718,10 +718,10 @@ export default function UserCarts() {
                             </div>
                         ) : (
                             <>
-                                <div className="overflow-x-auto">
+                                <div className="overflow-auto max-h-[calc(100vh-260px)] min-h-[300px]">
                                     <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                                        <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                                            <tr>
                                                 {[
                                                     { label: "№", a: "left" },
                                                     { label: "ID", a: "left" },
