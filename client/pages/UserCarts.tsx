@@ -723,9 +723,12 @@ export default function UserCarts() {
                                                             <td className="py-2.5 px-3 text-gray-400 text-sm">{page * PAGE_SIZE + gIdx + 1}</td>
                                                             <td className="py-2.5 px-3 whitespace-nowrap">
                                                                 {group.customerId ? (
-                                                                    <span className="font-mono text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded">
+                                                                    <button
+                                                                        onClick={() => openCart(cart, "cart")}
+                                                                        className="font-mono text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                                                                    >
                                                                         {group.customerId}
-                                                                    </span>
+                                                                    </button>
                                                                 ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
                                                             </td>
                                                             <td className="py-2.5 px-3 text-gray-800 dark:text-gray-200 whitespace-nowrap text-sm">{customerName(cart)}</td>
@@ -800,9 +803,12 @@ export default function UserCarts() {
                                                             <td className="py-2.5 px-3 whitespace-nowrap">
                                                                 <div className="flex items-center gap-1.5">
                                                                     {group.customerId ? (
-                                                                        <span className="font-mono text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded">
+                                                                        <button
+                                                                            onClick={e => { e.stopPropagation(); openCart(group.carts[0], "cart"); }}
+                                                                            className="font-mono text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                                                                        >
                                                                             {group.customerId}
-                                                                        </span>
+                                                                        </button>
                                                                     ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
                                                                     <span className="text-xs text-gray-400 dark:text-gray-500">{group.carts.length} корз.</span>
                                                                 </div>
