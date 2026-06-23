@@ -497,6 +497,7 @@ export default function UserCarts() {
             const q = query.toLowerCase();
             result = result.filter((c) =>
                 String(c.id).includes(q) ||
+                String(c.customer_id ?? "").includes(q) ||
                 (c.customer_phone ?? "").includes(q) ||
                 customerName(c).toLowerCase().includes(q) ||
                 (c.market_name ?? "").toLowerCase().includes(q) ||

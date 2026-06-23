@@ -547,6 +547,12 @@ export function UserCartModal({ cart, isOpen, onClose, initialTab = "cart", t }:
                     <DialogTitle className="flex items-center gap-3 text-lg font-bold text-gray-900 dark:text-gray-100">
                         <ShoppingCart className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                         {t.userCarts} #{cart.id}
+                        {cart.customer_id && (
+                            <span className="text-sm font-normal text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                                <User className="h-3.5 w-3.5" />
+                                ID {cart.customer_id}
+                            </span>
+                        )}
                         {cart.order_code && (
                             <span className="text-sm font-medium text-gray-400 dark:text-gray-500">· {cart.order_code}</span>
                         )}
