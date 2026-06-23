@@ -261,7 +261,7 @@ function groupCarts(carts: UserCart[]): CustomerGroup[] {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function UserCarts() {
-    const { isAuthenticated, isLoading: authLoading, token } = useAuth();
+    const { isAuthenticated, isLoading: authLoading, token, user } = useAuth();
     const { t } = useLanguage();
     const navigate = useNavigate();
 
@@ -283,6 +283,8 @@ export default function UserCarts() {
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
     const [claimWarning, setClaimWarning] = useState<string | null>(null);
     const expandedGroupPhoneRef = useRef<string | null>(null);
+    // Always reflects latest expandedGroups — avoids stale closure in event handlers
+    const expandedGroupsRef = useRef<Set<string>>(new Set());
 
     useEffect(() => {
         if (authLoading) return;
@@ -424,22 +426,23 @@ export default function UserCarts() {
         });
     };
 
-    // isCurrentlyExpanded passed explicitly to avoid stale closure on expandedGroups
-    const claimAndExpand = (group: CustomerGroup, isCurrentlyExpanded: boolean) => {
+    // expandedGroupsRef always reflects the latest state — no stale closure
+    expandedGroupsRef.current = expandedGroups;
+
+    const claimAndExpand = (group: CustomerGroup) => {
+        const isCurrentlyExpanded = expandedGroupsRef.current.has(group.key);
+
         if (isCurrentlyExpanded) {
-            // Collapse: release claim
             if (group.customerPhone && token && user) {
                 releaseCustomer(token, group.customerPhone, user.username).catch(() => {});
             }
             expandedGroupPhoneRef.current = null;
             setExpandedGroups(new Set());
         } else {
-            // Expand: release previous group's claim (if different)
             if (expandedGroupPhoneRef.current && expandedGroupPhoneRef.current !== group.customerPhone && token && user) {
                 releaseCustomer(token, expandedGroupPhoneRef.current, user.username).catch(() => {});
             }
             setExpandedGroups(new Set([group.key]));
-            // Claim new group (fire-and-forget so expand is instant)
             if (group.customerPhone && token && user) {
                 expandedGroupPhoneRef.current = group.customerPhone;
                 claimCustomer(token, group.customerPhone, user.username)
@@ -829,7 +832,7 @@ export default function UserCarts() {
                                                                     ? "bg-purple-100 dark:bg-purple-900 hover:bg-purple-200 dark:hover:bg-purple-800"
                                                                     : "bg-white dark:bg-gray-950 hover:bg-purple-50 dark:hover:bg-purple-950"
                                                             }`}
-                                                            onClick={() => claimAndExpand(group, isExpanded)}
+                                                            onClick={() => claimAndExpand(group)}
                                                         >
                                                             {/* № */}
                                                             <td className="py-2.5 px-3 text-gray-400 text-sm">
@@ -843,7 +846,7 @@ export default function UserCarts() {
                                                                 <div className="flex items-center gap-1.5">
                                                                     {group.customerId ? (
                                                                         <button
-                                                                            onClick={e => { e.stopPropagation(); claimAndExpand(group, isExpanded); }}
+                                                                            onClick={e => { e.stopPropagation(); claimAndExpand(group); }}
                                                                             className="font-mono text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
                                                                         >
                                                                             {group.customerId}
