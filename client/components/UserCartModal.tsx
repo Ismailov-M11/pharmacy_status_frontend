@@ -491,7 +491,6 @@ export function UserCartModal({ cart, isOpen, onClose, initialTab = "cart", t }:
     const [statuses, setStatuses] = useState<CartStatus[]>([]);
     useEffect(() => {
         if (!isOpen || !cart?.customer_phone || !token || !user) return;
-            .catch(() => {});
 
         return () => {
             if (cart?.customer_phone && token && user) {
