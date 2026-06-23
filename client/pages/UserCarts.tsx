@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -263,7 +264,14 @@ function groupCarts(carts: UserCart[]): CustomerGroup[] {
 export default function UserCarts() {
     const { isAuthenticated, isLoading: authLoading, token, user } = useAuth();
     const { t } = useLanguage();
+    const { theme } = useTheme();
     const navigate = useNavigate();
+    // Zebra striping via inline style — bypasses any CSS specificity/override issues
+    const rowBg = (i: number): React.CSSProperties => {
+        const even = i % 2 === 0;
+        if (theme === "dark") return { backgroundColor: even ? "#1f2937" : "#111827" }; // gray-800 / gray-900
+        return { backgroundColor: even ? "#e2e8f0" : "#ffffff" }; // slate-200 / white
+    };
 
     const [allCarts, setAllCarts] = useState<UserCart[]>([]);
     const [cartStatuses, setCartStatuses] = useState<CartStatus[]>([]);
@@ -783,11 +791,7 @@ export default function UserCarts() {
                                                 if (group.carts.length === 1) {
                                                     const cart = group.carts[0];
                                                     return (
-                                                        <tr key={group.key} className={`border-b border-gray-200 dark:border-gray-700 transition-colors ${
-                                                            gIdx % 2 === 0
-                                                                ? "bg-slate-200 dark:bg-gray-800 hover:bg-purple-100 dark:hover:bg-purple-900"
-                                                                : "bg-white dark:bg-gray-900 hover:bg-purple-50 dark:hover:bg-purple-950"
-                                                        }`}>
+                                                        <tr key={group.key} style={rowBg(gIdx)} className="border-b border-gray-200 dark:border-gray-700 transition-colors hover:!bg-purple-100 dark:hover:!bg-purple-900">
                                                             <td className="py-2.5 px-3 text-gray-400 text-sm">{page * PAGE_SIZE + gIdx + 1}</td>
                                                             <td className="py-2.5 px-3 whitespace-nowrap">
                                                                 {group.customerId ? (
@@ -856,11 +860,8 @@ export default function UserCarts() {
                                                     <React.Fragment key={group.key}>
                                                         {/* Group summary row — zebra striping */}
                                                         <tr
-                                                            className={`border-b border-gray-200 dark:border-gray-700 cursor-pointer transition-colors ${
-                                                                gIdx % 2 === 0
-                                                                    ? "bg-purple-50 dark:bg-purple-950 hover:bg-purple-100 dark:hover:bg-purple-900"
-                                                                    : "bg-white dark:bg-gray-950 hover:bg-purple-50 dark:hover:bg-purple-950"
-                                                            }`}
+                                                            style={rowBg(gIdx)}
+                                                            className="border-b border-gray-200 dark:border-gray-700 cursor-pointer transition-colors hover:!bg-purple-100 dark:hover:!bg-purple-900"
                                                             onClick={() => claimAndExpand(group)}
                                                         >
                                                             {/* № */}
