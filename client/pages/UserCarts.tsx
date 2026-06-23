@@ -713,9 +713,13 @@ export default function UserCarts() {
                                                 const lastCommentCart = group.carts.find(c => c.comment);
                                                 return (
                                                     <React.Fragment key={group.key}>
-                                                        {/* Group summary row */}
+                                                        {/* Group summary row — zebra striping */}
                                                         <tr
-                                                            className="border-b border-purple-100 dark:border-purple-900/30 bg-purple-50/60 dark:bg-purple-900/10 hover:bg-purple-100/60 dark:hover:bg-purple-900/20 cursor-pointer transition-colors"
+                                                            className={`border-b border-purple-100 dark:border-purple-900/30 cursor-pointer transition-colors ${
+                                                                gIdx % 2 === 0
+                                                                    ? "bg-purple-50/50 dark:bg-purple-900/10 hover:bg-purple-100/60 dark:hover:bg-purple-900/20"
+                                                                    : "bg-white dark:bg-gray-950 hover:bg-purple-50/40 dark:hover:bg-purple-900/15"
+                                                            }`}
                                                             onClick={() => toggleGroup(group.key)}
                                                         >
                                                             {/* № */}
@@ -805,15 +809,27 @@ export default function UserCarts() {
                                                                 ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
                                                             </td>
                                                             {/* Комментарий */}
-                                                            <td className="py-2.5 px-3 max-w-[180px]">
-                                                                {lastCommentCart?.comment ? (
-                                                                    <span className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">{lastCommentCart.comment}</span>
-                                                                ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
+                                                            <td className="py-2.5 px-3 max-w-[180px]" onClick={e => e.stopPropagation()}>
+                                                                <button
+                                                                    onClick={() => openCart(group.carts[0], "comments")}
+                                                                    className="text-left w-full hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                                                                    title="Добавить комментарий"
+                                                                >
+                                                                    {lastCommentCart?.comment ? (
+                                                                        <span className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">{lastCommentCart.comment}</span>
+                                                                    ) : (
+                                                                        <span className="text-xs text-gray-300 dark:text-gray-600 hover:text-purple-400 dark:hover:text-purple-500">+ комментарий</span>
+                                                                    )}
+                                                                </button>
                                                             </td>
                                                         </tr>
-                                                        {/* Expanded individual cart rows */}
-                                                        {isExpanded && group.carts.map(cart => (
-                                                            <tr key={cart.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-purple-50/40 dark:hover:bg-purple-900/10 transition-colors bg-white dark:bg-gray-950">
+                                                        {/* Expanded individual cart rows — zebra striping (blue tones) */}
+                                                        {isExpanded && group.carts.map((cart, cIdx) => (
+                                                            <tr key={cart.id} className={`border-b border-indigo-50 dark:border-indigo-900/20 transition-colors ${
+                                                                cIdx % 2 === 0
+                                                                    ? "bg-indigo-50/40 dark:bg-indigo-900/10 hover:bg-indigo-100/50 dark:hover:bg-indigo-900/20"
+                                                                    : "bg-sky-50/30 dark:bg-sky-900/10 hover:bg-sky-100/50 dark:hover:bg-sky-900/20"
+                                                            }`}>
                                                                 <td className="py-2.5 px-3 pl-7 text-gray-300 dark:text-gray-600 text-xs">↳</td>
                                                                 <td className="py-2.5 px-3">
                                                                     <button onClick={() => openCart(cart, "cart")} className="font-medium text-purple-700 dark:text-purple-400 hover:underline whitespace-nowrap text-xs">
