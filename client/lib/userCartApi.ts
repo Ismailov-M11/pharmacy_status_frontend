@@ -61,6 +61,8 @@ export interface UserCart {
   order_status: "pending" | "in_progress" | "delivered" | "cancelled" | "deleted";
   order_status_synced_at: string | null;
   order_code: string | null;
+  claimed_by: string | null;
+  claimed_at: string | null;
 }
 
 export interface CartFilters {
@@ -265,4 +267,21 @@ export async function addCartComment(
     body: JSON.stringify({ text, createdBy, status }),
   });
   return handleResponse<CartComment>(res);
+}
+
+export async function claimCustomer(token: string, customerPhone: string, username: string): Promise<{ previousClaimer: string | null }> {
+  const res = await fetch(`${BASE}/claim`, {
+    method: "POST",
+    headers: authHeader(token),
+    body: JSON.stringify({ customerPhone, username }),
+  });
+  return handleResponse(res);
+}
+
+export async function releaseCustomer(token: string, customerPhone: string, username: string): Promise<void> {
+  await fetch(`${BASE}/claim`, {
+    method: "DELETE",
+    headers: authHeader(token),
+    body: JSON.stringify({ customerPhone, username }),
+  });
 }

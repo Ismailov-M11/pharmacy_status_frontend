@@ -218,6 +218,44 @@ function FilterSection({ title, children, grow }: { title: string; children: Rea
     );
 }
 
+interface CustomerGroup {
+  key: string;
+  customerId: number | null;
+  customerPhone: string | null;
+  customerFirstName: string | null;
+  customerLastName: string | null;
+  carts: UserCart[];
+  totalSum: number;
+  claimedBy: string | null;
+  claimedAt: string | null;
+}
+
+function groupCarts(carts: UserCart[]): CustomerGroup[] {
+  const map = new Map<string, CustomerGroup>();
+  for (const cart of carts) {
+    const key = cart.customer_id != null
+      ? `id:${cart.customer_id}`
+      : `phone:${cart.customer_phone ?? "unknown"}`;
+    if (!map.has(key)) {
+      map.set(key, {
+        key,
+        customerId: cart.customer_id,
+        customerPhone: cart.customer_phone,
+        customerFirstName: cart.customer_first_name,
+        customerLastName: cart.customer_last_name,
+        carts: [],
+        totalSum: 0,
+        claimedBy: cart.claimed_by ?? null,
+        claimedAt: cart.claimed_at ?? null,
+      });
+    }
+    const group = map.get(key)!;
+    group.carts.push(cart);
+    group.totalSum += cart.invoice_total ?? 0;
+  }
+  return Array.from(map.values());
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function UserCarts() {
     const { isAuthenticated, isLoading: authLoading, token } = useAuth();
@@ -239,6 +277,7 @@ export default function UserCarts() {
     const [filterOpen, setFilterOpen] = useState(false);
     const [selectedCart, setSelectedCart] = useState<UserCart | null>(null);
     const [selectedCartTab, setSelectedCartTab] = useState<"cart" | "map" | "comments">("cart");
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         if (authLoading) return;
@@ -372,6 +411,14 @@ export default function UserCarts() {
         }
     };
 
+    const toggleGroup = (key: string) => {
+        setExpandedGroups(prev => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key); else next.add(key);
+            return next;
+        });
+    };
+
     // ─── Derived filter options ────────────────────────────────────────────────
     const allPharmacies = useMemo(
         () => [...new Set(allCarts.map((c) => c.market_name).filter(Boolean) as string[])].sort(),
@@ -431,13 +478,15 @@ export default function UserCarts() {
         return result;
     }, [allCarts, query, filters]);
 
+    const filteredGroups = useMemo(() => groupCarts(filteredCarts), [filteredCarts]);
+
     const prevQuery = useRef(query);
     useEffect(() => {
         if (query !== prevQuery.current) { setPage(0); prevQuery.current = query; }
     }, [query]);
 
-    const totalPages = Math.ceil(filteredCarts.length / PAGE_SIZE);
-    const pageCarts = filteredCarts.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+    const totalPages = Math.ceil(filteredGroups.length / PAGE_SIZE);
+    const pageGroups = filteredGroups.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
     const applyFilters = () => {
         setFilters(pendingFilters);
         setPage(0);
@@ -644,85 +693,136 @@ export default function UserCarts() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {pageCarts.map((cart, idx) => (
-                                                <tr key={cart.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors">
-                                                    <td className="py-3 px-3 text-gray-500 dark:text-gray-400">{page * PAGE_SIZE + idx + 1}</td>
-                                                    <td className="py-3 px-3">
-                                                        <button onClick={() => openCart(cart, "cart")} className="font-medium text-purple-700 dark:text-purple-400 hover:underline whitespace-nowrap">
-                                                            #{cart.id}
-                                                        </button>
-                                                        {cart.order_code && (
-                                                            <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{cart.order_code}</div>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-3 px-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                                                        {format(new Date(cart.creation_date), "dd.MM.yyyy HH:mm")}
-                                                    </td>
-                                                    <td className="py-3 px-3 text-gray-900 dark:text-gray-100 whitespace-nowrap">{customerName(cart)}</td>
-                                                    <td className="py-3 px-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">{cart.customer_phone}</td>
-                                                    <td className="py-3 px-3 text-gray-900 dark:text-gray-100">{cart.market_name}</td>
-                                                    <td className="py-3 px-3 text-gray-500 dark:text-gray-400 max-w-[180px] truncate">{cart.market_address}</td>
-                                                    <td className="py-3 px-3 text-center">
-                                                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs font-semibold">
-                                                            {cart.items.length}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-3 px-3 text-right font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                                                        {formatSum(cart.invoice_total)} {t.sum}
-                                                    </td>
-                                                    <td className="py-3 px-3 whitespace-nowrap">
-                                                        {cart.invoice_promo_code ? (
-                                                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400">
-                                                                <Tag className="h-2.5 w-2.5" />{cart.invoice_promo_code}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-gray-300 dark:text-gray-600">—</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-3 px-3 whitespace-nowrap">
-                                                        <span className="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{cart.source}</span>
-                                                    </td>
-                                                    <td className="py-3 px-3">
-                                                        {cart.order_status && cart.order_status !== "pending" ? (
-                                                            <OrderStatusBadge status={cart.order_status} />
-                                                        ) : (
-                                                            <StatusBadge status={cart.cart_status} statuses={cartStatuses} />
-                                                        )}
-                                                    </td>
-                                                    <td className="py-3 px-3 whitespace-nowrap">
-                                                        {cart.comment_by ? (
-                                                            <span className="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
-                                                                <User className="h-3 w-3 text-purple-400 shrink-0" />
-                                                                {cart.comment_by}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-gray-300 dark:text-gray-600">—</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-3 px-3 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
-                                                        {cart.comment_at ? format(new Date(cart.comment_at), "dd.MM.yy HH:mm") : <span className="text-gray-300 dark:text-gray-600">—</span>}
-                                                    </td>
-                                                    <td className="py-3 px-3 max-w-[180px]">
-                                                        <button
-                                                            onClick={() => openCart(cart, "comments")}
-                                                            className="text-left w-full hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-                                                            title="Открыть комментарии"
+                                            {pageGroups.map((group, gIdx) => {
+                                                const isExpanded = expandedGroups.has(group.key);
+                                                const groupCustomerName = [group.customerFirstName, group.customerLastName].filter(Boolean).join(" ") || "—";
+                                                // Status counts for the group
+                                                const statusCounts = new Map<string, number>();
+                                                for (const c of group.carts) {
+                                                    const s = (c.order_status && c.order_status !== "pending") ? c.order_status : c.cart_status;
+                                                    statusCounts.set(s, (statusCounts.get(s) ?? 0) + 1);
+                                                }
+                                                return (
+                                                    <React.Fragment key={group.key}>
+                                                        {/* Group header row */}
+                                                        <tr
+                                                            className="border-b border-purple-100 dark:border-purple-900/30 bg-purple-50/60 dark:bg-purple-900/10 hover:bg-purple-100/60 dark:hover:bg-purple-900/20 cursor-pointer transition-colors"
+                                                            onClick={() => toggleGroup(group.key)}
                                                         >
-                                                            {cart.comment ? (
-                                                                <span className="flex items-start gap-1 text-xs text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400">
-                                                                    <MessageSquare className="h-3 w-3 shrink-0 mt-0.5 text-purple-400" />
-                                                                    <span className="truncate">{cart.comment}</span>
-                                                                </span>
-                                                            ) : (
-                                                                <span className="flex items-center gap-1 text-xs text-gray-300 dark:text-gray-600 hover:text-purple-400 dark:hover:text-purple-500">
-                                                                    <MessageSquare className="h-3 w-3" />
-                                                                    Добавить
-                                                                </span>
-                                                            )}
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                                            <td className="py-2.5 px-3 text-gray-400 text-sm">{page * PAGE_SIZE + gIdx + 1}</td>
+                                                            <td colSpan={14} className="py-2.5 px-3">
+                                                                <div className="flex items-center gap-3 flex-wrap">
+                                                                    <ChevronRight className={`h-4 w-4 text-purple-500 shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
+                                                                    {group.customerId && (
+                                                                        <span className="font-mono text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded">
+                                                                            ID {group.customerId}
+                                                                        </span>
+                                                                    )}
+                                                                    <span className="font-medium text-gray-700 dark:text-gray-300 text-sm">{group.customerPhone ?? "—"}</span>
+                                                                    <span className="text-gray-600 dark:text-gray-400 text-sm">{groupCustomerName}</span>
+                                                                    <span className="text-xs text-gray-400 dark:text-gray-500">·</span>
+                                                                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{group.carts.length} корзин</span>
+                                                                    <span className="text-xs text-gray-400 dark:text-gray-500">·</span>
+                                                                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{formatSum(group.totalSum)} {t.sum}</span>
+                                                                    <div className="flex items-center gap-1 ml-1">
+                                                                        {Array.from(statusCounts.entries()).map(([s, count]) => {
+                                                                            const cfg = ORDER_STATUS_CONFIG[s as keyof typeof ORDER_STATUS_CONFIG];
+                                                                            const st = cartStatuses.find(x => x.value === s);
+                                                                            const label = cfg?.label ?? st?.label ?? s;
+                                                                            const cls = cfg?.cls ?? (st ? statusBadgeClasses(st.color) : "bg-gray-100 text-gray-500");
+                                                                            return (
+                                                                                <span key={s} className={`inline-flex items-center text-xs px-1.5 py-0.5 rounded-full ${cls}`}>
+                                                                                    {label}{count > 1 ? ` ×${count}` : ""}
+                                                                                </span>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                    {group.claimedBy && (
+                                                                        <span className="ml-auto text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                                                                            <User className="h-3 w-3" />
+                                                                            {group.claimedBy} обрабатывает
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        {/* Expanded cart rows */}
+                                                        {isExpanded && group.carts.map(cart => (
+                                                            <tr key={cart.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors bg-white dark:bg-gray-950">
+                                                                <td className="py-3 px-3 text-gray-300 dark:text-gray-600 pl-8">↳</td>
+                                                                <td className="py-3 px-3">
+                                                                    <button onClick={() => openCart(cart, "cart")} className="font-medium text-purple-700 dark:text-purple-400 hover:underline whitespace-nowrap">
+                                                                        #{cart.id}
+                                                                    </button>
+                                                                    {cart.order_code && (
+                                                                        <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{cart.order_code}</div>
+                                                                    )}
+                                                                </td>
+                                                                <td className="py-3 px-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                                                                    {format(new Date(cart.creation_date), "dd.MM.yyyy HH:mm")}
+                                                                </td>
+                                                                <td className="py-3 px-3 text-gray-900 dark:text-gray-100 whitespace-nowrap">{customerName(cart)}</td>
+                                                                <td className="py-3 px-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">{cart.customer_phone}</td>
+                                                                <td className="py-3 px-3 text-gray-900 dark:text-gray-100">{cart.market_name}</td>
+                                                                <td className="py-3 px-3 text-gray-500 dark:text-gray-400 max-w-[180px] truncate">{cart.market_address}</td>
+                                                                <td className="py-3 px-3 text-center">
+                                                                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs font-semibold">
+                                                                        {cart.items.length}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="py-3 px-3 text-right font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                                                                    {formatSum(cart.invoice_total)} {t.sum}
+                                                                </td>
+                                                                <td className="py-3 px-3 whitespace-nowrap">
+                                                                    {cart.invoice_promo_code ? (
+                                                                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400">
+                                                                            <Tag className="h-2.5 w-2.5" />{cart.invoice_promo_code}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-gray-300 dark:text-gray-600">—</span>
+                                                                    )}
+                                                                </td>
+                                                                <td className="py-3 px-3 whitespace-nowrap">
+                                                                    <span className="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{cart.source}</span>
+                                                                </td>
+                                                                <td className="py-3 px-3">
+                                                                    {cart.order_status && cart.order_status !== "pending" ? (
+                                                                        <OrderStatusBadge status={cart.order_status} />
+                                                                    ) : (
+                                                                        <StatusBadge status={cart.cart_status} statuses={cartStatuses} />
+                                                                    )}
+                                                                </td>
+                                                                <td className="py-3 px-3 whitespace-nowrap">
+                                                                    {cart.comment_by ? (
+                                                                        <span className="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                                                            <User className="h-3 w-3 text-purple-400 shrink-0" />
+                                                                            {cart.comment_by}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-gray-300 dark:text-gray-600">—</span>
+                                                                    )}
+                                                                </td>
+                                                                <td className="py-3 px-3 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
+                                                                    {cart.comment_at ? format(new Date(cart.comment_at), "dd.MM.yy HH:mm") : <span className="text-gray-300 dark:text-gray-600">—</span>}
+                                                                </td>
+                                                                <td className="py-3 px-3 max-w-[180px]">
+                                                                    <button
+                                                                        onClick={() => openCart(cart, "comments")}
+                                                                        className="text-left w-full hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                                                                        title="Открыть комментарии"
+                                                                    >
+                                                                        {cart.comment ? (
+                                                                            <span className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{cart.comment}</span>
+                                                                        ) : (
+                                                                            <span className="text-gray-300 dark:text-gray-600">—</span>
+                                                                        )}
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </React.Fragment>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>
@@ -730,7 +830,7 @@ export default function UserCarts() {
                                 {/* Pagination */}
                                 <div className="mt-4 flex items-center justify-between gap-4 flex-wrap">
                                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                                        {t.shown}: {Math.min(page * PAGE_SIZE + 1, filteredCarts.length)}–{Math.min((page + 1) * PAGE_SIZE, filteredCarts.length)} {t.of} {filteredCarts.length}
+                                        {t.shown}: {Math.min(page * PAGE_SIZE + 1, filteredGroups.length)}–{Math.min((page + 1) * PAGE_SIZE, filteredGroups.length)} {t.of} {filteredGroups.length}
                                     </span>
                                     {totalPages > 1 && (
                                         <div className="flex items-center gap-1">
