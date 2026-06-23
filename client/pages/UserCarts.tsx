@@ -726,10 +726,10 @@ export default function UserCarts() {
                                                                 </div>
                                                             </td>
                                                             {/* ID */}
-                                                            <td className="py-2.5 px-3">
-                                                                <div className="flex flex-col gap-0.5">
+                                                            <td className="py-2.5 px-3 whitespace-nowrap">
+                                                                <div className="flex items-center gap-1.5">
                                                                     {group.customerId ? (
-                                                                        <span className="font-mono text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded w-fit">
+                                                                        <span className="font-mono text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded">
                                                                             {group.customerId}
                                                                         </span>
                                                                     ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
@@ -789,7 +789,7 @@ export default function UserCarts() {
                                                                         const label = cfg?.label ?? st?.label ?? s;
                                                                         const cls = cfg?.cls ?? (st ? statusBadgeClasses(st.color) : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400");
                                                                         return (
-                                                                            <span key={s} className={`inline-flex items-center text-xs px-1.5 py-0.5 rounded-full ${cls}`}>
+                                                                            <span key={s} className={`inline-flex items-center whitespace-nowrap text-xs px-1.5 py-0.5 rounded-full ${cls}`}>
                                                                                 {label}{count > 1 ? ` ×${count}` : ""}
                                                                             </span>
                                                                         );
