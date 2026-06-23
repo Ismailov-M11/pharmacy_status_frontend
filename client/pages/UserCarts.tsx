@@ -568,12 +568,24 @@ export default function UserCarts() {
     const stats = syncStatus?.stats;
     const lastSync = syncStatus?.lastSyncAt || stats?.lastSyncedAt;
 
+    // All statuses available in history filter: cart statuses + order statuses (stored as __order__<value>)
+    const historyStatusOptions = useMemo(() => [
+        ...cartStatuses.map((s) => ({ label: s.label, value: s.value })),
+        ...Object.entries(ORDER_STATUS_CONFIG)
+            .filter(([v]) => v !== "pending")
+            .map(([value, cfg]) => ({ label: cfg.label, value: `__order__${value}` })),
+    ], [cartStatuses]);
+
     const totalSum = useMemo(
         () => filteredCarts.reduce((sum, c) => sum + (c.invoice_total || 0), 0),
         [filteredCarts]
     );
     const unprocessedSum = useMemo(
         () => filteredCarts.filter((c) => c.cart_status === "unprocessed").reduce((sum, c) => sum + (c.invoice_total || 0), 0),
+        [filteredCarts]
+    );
+    const processedSum = useMemo(
+        () => filteredCarts.filter((c) => c.cart_status === "processed").reduce((sum, c) => sum + (c.invoice_total || 0), 0),
         [filteredCarts]
     );
 
@@ -621,6 +633,11 @@ export default function UserCarts() {
                             {unprocessedSum > 0 && (
                                 <span className="text-[11px] text-yellow-600 dark:text-yellow-400 whitespace-nowrap border-l border-purple-200 dark:border-purple-800 pl-2">
                                     Не обработано: <b>{formatSum(unprocessedSum)} {t.sum}</b>
+                                </span>
+                            )}
+                            {processedSum > 0 && (
+                                <span className="text-[11px] text-blue-600 dark:text-blue-400 whitespace-nowrap border-l border-purple-200 dark:border-purple-800 pl-2">
+                                    Обработано: <b>{formatSum(processedSum)} {t.sum}</b>
                                 </span>
                             )}
                         </div>
@@ -1163,10 +1180,10 @@ export default function UserCarts() {
                                 <div className="grid grid-cols-1 gap-4">
                                     <FilterSection title="Статус в истории">
                                         <CheckList
-                                            options={cartStatuses.map((s) => s.label)}
-                                            selected={pendingFilters.historyStatuses.map((v) => cartStatuses.find((s) => s.value === v)?.label ?? v)}
+                                            options={historyStatusOptions.map((o) => o.label)}
+                                            selected={pendingFilters.historyStatuses.map((v) => historyStatusOptions.find((o) => o.value === v)?.label ?? v)}
                                             onChange={(labels) => {
-                                                const values = labels.map((l) => cartStatuses.find((s) => s.label === l)?.value ?? l);
+                                                const values = labels.map((l) => historyStatusOptions.find((o) => o.label === l)?.value ?? l);
                                                 setPendingFilters((f) => ({ ...f, historyStatuses: values }));
                                             }}
                                         />
