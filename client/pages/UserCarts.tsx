@@ -711,6 +711,73 @@ export default function UserCarts() {
                                                 const promos = [...new Set(group.carts.map(c => c.invoice_promo_code).filter(Boolean))];
                                                 const promoLabel = promos.length > 0 ? promos[0] : null;
                                                 const lastCommentCart = group.carts.find(c => c.comment);
+                                                // Single-cart group: render cart row directly, no collapse
+                                                if (group.carts.length === 1) {
+                                                    const cart = group.carts[0];
+                                                    return (
+                                                        <tr key={group.key} className={`border-b border-gray-200 dark:border-gray-700 transition-colors ${
+                                                            gIdx % 2 === 0
+                                                                ? "bg-purple-50 dark:bg-purple-950 hover:bg-purple-100 dark:hover:bg-purple-900"
+                                                                : "bg-white dark:bg-gray-950 hover:bg-purple-50 dark:hover:bg-purple-950"
+                                                        }`}>
+                                                            <td className="py-2.5 px-3 text-gray-400 text-sm">{page * PAGE_SIZE + gIdx + 1}</td>
+                                                            <td className="py-2.5 px-3 whitespace-nowrap">
+                                                                {group.customerId ? (
+                                                                    <span className="font-mono text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded">
+                                                                        {group.customerId}
+                                                                    </span>
+                                                                ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
+                                                            </td>
+                                                            <td className="py-2.5 px-3 text-gray-800 dark:text-gray-200 whitespace-nowrap text-sm">{customerName(cart)}</td>
+                                                            <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300 whitespace-nowrap font-medium">{cart.customer_phone}</td>
+                                                            <td className="py-2.5 px-3 text-gray-600 dark:text-gray-400 text-xs whitespace-nowrap">
+                                                                {format(new Date(cart.creation_date), "dd.MM.yyyy HH:mm")}
+                                                            </td>
+                                                            <td className="py-2.5 px-3 text-gray-800 dark:text-gray-200 text-xs">{cart.market_name}</td>
+                                                            <td className="py-2.5 px-3 text-gray-500 dark:text-gray-400 max-w-[160px] truncate text-xs">{cart.market_address}</td>
+                                                            <td className="py-2.5 px-3 text-center">
+                                                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs font-semibold">
+                                                                    {cart.items.length}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-2.5 px-3 text-right font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                                                                {formatSum(cart.invoice_total)} {t.sum}
+                                                            </td>
+                                                            <td className="py-2.5 px-3 whitespace-nowrap">
+                                                                {cart.invoice_promo_code ? (
+                                                                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400">
+                                                                        <Tag className="h-2.5 w-2.5" />{cart.invoice_promo_code}
+                                                                    </span>
+                                                                ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
+                                                            </td>
+                                                            <td className="py-2.5 px-3 whitespace-nowrap">
+                                                                <span className="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{cart.source}</span>
+                                                            </td>
+                                                            <td className="py-2.5 px-3">
+                                                                {cart.order_status && cart.order_status !== "pending" ? (
+                                                                    <OrderStatusBadge status={cart.order_status} />
+                                                                ) : (
+                                                                    <StatusBadge status={cart.cart_status} statuses={cartStatuses} />
+                                                                )}
+                                                            </td>
+                                                            <td className="py-2.5 px-3 whitespace-nowrap">
+                                                                {cart.comment_by ? (
+                                                                    <span className="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                                                        <User className="h-3 w-3 text-purple-400 shrink-0" />{cart.comment_by}
+                                                                    </span>
+                                                                ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
+                                                            </td>
+                                                            <td className="py-2.5 px-3 max-w-[180px]">
+                                                                <button onClick={() => openCart(cart, "comments")} className="text-left w-full hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
+                                                                    {cart.comment ? (
+                                                                        <span className="text-xs text-gray-700 dark:text-gray-300 line-clamp-2">{cart.comment}</span>
+                                                                    ) : <span className="text-xs text-gray-300 dark:text-gray-600 hover:text-purple-400">+ комментарий</span>}
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                }
+
                                                 return (
                                                     <React.Fragment key={group.key}>
                                                         {/* Group summary row — zebra striping */}
