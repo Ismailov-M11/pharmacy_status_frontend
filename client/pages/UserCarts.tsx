@@ -424,44 +424,38 @@ export default function UserCarts() {
         });
     };
 
-    const claimAndExpand = async (group: CustomerGroup) => {
-        const isExpanding = !expandedGroups.has(group.key);
-
-        // Release claim on previously expanded group (if different)
-        if (expandedGroupPhoneRef.current && expandedGroupPhoneRef.current !== group.customerPhone && token && user) {
-            releaseCustomer(token, expandedGroupPhoneRef.current, user.username).catch(() => {});
-        }
-
-        if (isExpanding) {
-            // Collapse all other groups, open only this one
-            setExpandedGroups(new Set([group.key]));
-
-            // Claim the new group
-            if (group.customerPhone && token && user) {
-                try {
-                    const { previousClaimer } = await claimCustomer(token, group.customerPhone, user.username);
-                    if (previousClaimer) setClaimWarning(previousClaimer);
-                } catch {}
-                expandedGroupPhoneRef.current = group.customerPhone;
-            }
-        } else {
-            // Collapsing — release this group's claim
+    // isCurrentlyExpanded passed explicitly to avoid stale closure on expandedGroups
+    const claimAndExpand = (group: CustomerGroup, isCurrentlyExpanded: boolean) => {
+        if (isCurrentlyExpanded) {
+            // Collapse: release claim
             if (group.customerPhone && token && user) {
                 releaseCustomer(token, group.customerPhone, user.username).catch(() => {});
             }
             expandedGroupPhoneRef.current = null;
             setExpandedGroups(new Set());
+        } else {
+            // Expand: release previous group's claim (if different)
+            if (expandedGroupPhoneRef.current && expandedGroupPhoneRef.current !== group.customerPhone && token && user) {
+                releaseCustomer(token, expandedGroupPhoneRef.current, user.username).catch(() => {});
+            }
+            setExpandedGroups(new Set([group.key]));
+            // Claim new group (fire-and-forget so expand is instant)
+            if (group.customerPhone && token && user) {
+                expandedGroupPhoneRef.current = group.customerPhone;
+                claimCustomer(token, group.customerPhone, user.username)
+                    .then(({ previousClaimer }) => { if (previousClaimer) setClaimWarning(previousClaimer); })
+                    .catch(() => {});
+            }
         }
     };
 
-    const claimAndOpenCart = async (cart: UserCart, tab: "cart" | "map" | "comments") => {
+    const claimAndOpenCart = (cart: UserCart, tab: "cart" | "map" | "comments") => {
+        openCart(cart, tab); // Open immediately, don't wait for claim
         if (cart.customer_phone && token && user) {
-            try {
-                const { previousClaimer } = await claimCustomer(token, cart.customer_phone, user.username);
-                if (previousClaimer) setClaimWarning(previousClaimer);
-            } catch {}
+            claimCustomer(token, cart.customer_phone, user.username)
+                .then(({ previousClaimer }) => { if (previousClaimer) setClaimWarning(previousClaimer); })
+                .catch(() => {});
         }
-        openCart(cart, tab);
     };
 
     // ─── Derived filter options ────────────────────────────────────────────────
@@ -835,7 +829,7 @@ export default function UserCarts() {
                                                                     ? "bg-purple-100 dark:bg-purple-900 hover:bg-purple-200 dark:hover:bg-purple-800"
                                                                     : "bg-white dark:bg-gray-950 hover:bg-purple-50 dark:hover:bg-purple-950"
                                                             }`}
-                                                            onClick={() => claimAndExpand(group)}
+                                                            onClick={() => claimAndExpand(group, isExpanded)}
                                                         >
                                                             {/* № */}
                                                             <td className="py-2.5 px-3 text-gray-400 text-sm">
@@ -849,7 +843,7 @@ export default function UserCarts() {
                                                                 <div className="flex items-center gap-1.5">
                                                                     {group.customerId ? (
                                                                         <button
-                                                                            onClick={e => { e.stopPropagation(); claimAndExpand(group); }}
+                                                                            onClick={e => { e.stopPropagation(); claimAndExpand(group, isExpanded); }}
                                                                             className="font-mono text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
                                                                         >
                                                                             {group.customerId}
