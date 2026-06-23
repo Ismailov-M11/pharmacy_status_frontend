@@ -586,10 +586,13 @@ export default function UserCarts() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden">
             <Header />
 
-            <main className="w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+            <main className="flex-1 flex flex-col overflow-hidden px-4 sm:px-6 lg:px-8 pt-5 sm:pt-6 min-h-0">
+
+                {/* ── Top controls (shrink-0) ─────────────────────────────── */}
+                <div className="shrink-0">
 
                 {/* Page header */}
                 <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
