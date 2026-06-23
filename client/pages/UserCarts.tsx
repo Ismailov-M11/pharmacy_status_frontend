@@ -785,7 +785,7 @@ export default function UserCarts() {
                                                     return (
                                                         <tr key={group.key} className={`border-b border-gray-200 dark:border-gray-700 transition-colors ${
                                                             gIdx % 2 === 0
-                                                                ? "bg-gray-100 dark:bg-gray-800/60 hover:bg-purple-100 dark:hover:bg-purple-900"
+                                                                ? "bg-gray-200/80 dark:bg-gray-800 hover:bg-purple-100 dark:hover:bg-purple-900"
                                                                 : "bg-white dark:bg-gray-900 hover:bg-purple-50 dark:hover:bg-purple-950"
                                                         }`}>
                                                             <td className="py-2.5 px-3 text-gray-400 text-sm">{page * PAGE_SIZE + gIdx + 1}</td>
