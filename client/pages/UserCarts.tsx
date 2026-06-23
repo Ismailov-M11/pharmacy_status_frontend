@@ -736,6 +736,7 @@ export default function UserCarts() {
                                                     { label: t.cartStatus, a: "left" },
                                                     { label: "Кем", a: "left" },
                                                     { label: t.comment, a: "left" },
+                                                    { label: "Дата", a: "left" },
                                                 ].map((h, i) => (
                                                     <th key={i} className={`py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap text-${h.a}`}>
                                                         {h.label}
@@ -762,7 +763,7 @@ export default function UserCarts() {
                                                 const sourceLabel = sources.length === 1 ? sources[0] : null;
                                                 const promos = [...new Set(group.carts.map(c => c.invoice_promo_code).filter(Boolean))];
                                                 const promoLabel = promos.length > 0 ? promos[0] : null;
-                                                const lastCommentCart = group.carts.find(c => c.comment);
+                                                const lastCommentCart = group.carts.find(c => c.comment_by) ?? group.carts.find(c => c.comment);
                                                 // Single-cart group: render cart row directly, no collapse
                                                 if (group.carts.length === 1) {
                                                     const cart = group.carts[0];
@@ -828,6 +829,9 @@ export default function UserCarts() {
                                                                         <span className="text-xs text-gray-700 dark:text-gray-300 line-clamp-2">{cart.comment}</span>
                                                                     ) : <span className="text-xs text-gray-300 dark:text-gray-600 hover:text-purple-400">+ комментарий</span>}
                                                                 </button>
+                                                            </td>
+                                                            <td className="py-2.5 px-3 whitespace-nowrap text-xs text-gray-400 dark:text-gray-500">
+                                                                {cart.comment_at ? format(new Date(cart.comment_at), "dd.MM.yy HH:mm") : <span className="text-gray-200 dark:text-gray-700">—</span>}
                                                             </td>
                                                         </tr>
                                                     );
@@ -947,6 +951,10 @@ export default function UserCarts() {
                                                                     )}
                                                                 </button>
                                                             </td>
+                                                            {/* Дата комментария — group row */}
+                                                            <td className="py-2.5 px-3 whitespace-nowrap text-xs text-gray-400 dark:text-gray-500">
+                                                                {lastCommentCart?.comment_at ? format(new Date(lastCommentCart.comment_at), "dd.MM.yy HH:mm") : <span className="text-gray-200 dark:text-gray-700">—</span>}
+                                                            </td>
                                                         </tr>
                                                         {/* Expanded individual cart rows — zebra striping (blue tones) */}
                                                         {isExpanded && group.carts.map((cart, cIdx) => (
@@ -1010,6 +1018,9 @@ export default function UserCarts() {
                                                                             <span className="text-xs text-gray-700 dark:text-gray-300 line-clamp-2">{cart.comment}</span>
                                                                         ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
                                                                     </button>
+                                                                </td>
+                                                                <td className="py-2.5 px-3 whitespace-nowrap text-xs text-gray-400 dark:text-gray-500">
+                                                                    {cart.comment_at ? format(new Date(cart.comment_at), "dd.MM.yy HH:mm") : <span className="text-gray-200 dark:text-gray-700">—</span>}
                                                                 </td>
                                                             </tr>
                                                         ))}
