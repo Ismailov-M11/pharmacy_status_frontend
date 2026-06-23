@@ -804,7 +804,7 @@ export default function UserCarts() {
                                                                 <div className="flex items-center gap-1.5">
                                                                     {group.customerId ? (
                                                                         <button
-                                                                            onClick={e => { e.stopPropagation(); openCart(group.carts[0], "cart"); }}
+                                                                            onClick={e => { e.stopPropagation(); toggleGroup(group.key); }}
                                                                             className="font-mono text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
                                                                         >
                                                                             {group.customerId}
