@@ -1203,32 +1203,39 @@ export default function UserCarts() {
             </AlertDialog>
 
             {/* ─── Claim warning dialog ───────────────────────────────────────── */}
-            {claimWarning && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40" onClick={() => { setClaimWarning(null); if (pendingCartOpen) { openCart(pendingCartOpen.cart, pendingCartOpen.tab); setPendingCartOpen(null); } }}>
-                    <div
-                        className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl p-6 max-w-sm mx-4 flex flex-col gap-4"
-                        onClick={e => e.stopPropagation()}
-                    >
+            <AlertDialog
+                open={!!claimWarning}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setClaimWarning(null);
+                        if (pendingCartOpen) {
+                            openCart(pendingCartOpen.cart, pendingCartOpen.tab);
+                            setPendingCartOpen(null);
+                        }
+                    }
+                }}
+            >
+                <AlertDialogContent className="max-w-sm">
+                    <AlertDialogHeader>
                         <div className="flex items-start gap-3">
                             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
                                 <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                             </div>
                             <div>
-                                <p className="font-semibold text-gray-900 dark:text-gray-100">Клиент уже обрабатывается</p>
-                                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                <AlertDialogTitle>Клиент уже обрабатывается</AlertDialogTitle>
+                                <AlertDialogDescription>
                                     <span className="font-medium text-amber-600 dark:text-amber-400">{claimWarning}</span> сейчас работает с этим клиентом
-                                </p>
+                                </AlertDialogDescription>
                             </div>
                         </div>
-                        <button
-                            onClick={() => { setClaimWarning(null); if (pendingCartOpen) { openCart(pendingCartOpen.cart, pendingCartOpen.tab); setPendingCartOpen(null); } }}
-                            className="self-end rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 transition-colors"
-                        >
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogAction className="bg-purple-600 hover:bg-purple-700 text-white">
                             Понятно
-                        </button>
-                    </div>
-                </div>
-            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* ─── Cart detail modal ──────────────────────────────────────────── */}
             <UserCartModal
