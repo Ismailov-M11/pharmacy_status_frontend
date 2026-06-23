@@ -699,9 +699,11 @@ export default function UserCarts() {
                     </p>
                 )}
 
-                {/* Table */}
-                <Card>
-                    <CardContent className="pt-6">
+                </div>{/* end shrink-0 controls */}
+
+                {/* ── Table card (flex-1) ──────────────────────────────────── */}
+                <Card className="flex-1 flex flex-col min-h-0 overflow-hidden mb-4">
+                    <CardContent className="flex-1 flex flex-col min-h-0 p-0 px-6 pt-4">
                         {isLoading ? (
                             <div className="flex flex-col items-center justify-center h-64 gap-3">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
@@ -720,8 +722,8 @@ export default function UserCarts() {
                                 </Button>
                             </div>
                         ) : (
-                            <>
-                                <div className="overflow-auto max-h-[calc(100vh-260px)] min-h-[300px]">
+                            <div className="flex-1 flex flex-col min-h-0">
+                                <div className="flex-1 overflow-auto min-h-0">
                                     <table className="w-full text-sm">
                                         <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
                                             <tr>
@@ -1036,7 +1038,7 @@ export default function UserCarts() {
                                 </div>
 
                                 {/* Pagination */}
-                                <div className="mt-4 flex items-center justify-between gap-4 flex-wrap">
+                                <div className="shrink-0 mt-3 pb-4 flex items-center justify-between gap-4 flex-wrap">
                                     <span className="text-sm text-gray-600 dark:text-gray-400">
                                         {t.shown}: {Math.min(page * PAGE_SIZE + 1, filteredGroups.length)}–{Math.min((page + 1) * PAGE_SIZE, filteredGroups.length)} {t.of} {filteredGroups.length}
                                     </span>
@@ -1067,7 +1069,7 @@ export default function UserCarts() {
                                         </div>
                                     )}
                                 </div>
-                            </>
+                            </div>
                         )}
                     </CardContent>
                 </Card>
