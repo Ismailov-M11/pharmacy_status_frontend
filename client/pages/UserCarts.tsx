@@ -33,6 +33,7 @@ import {
     X,
     MessageSquare,
     User,
+    AlertTriangle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -43,6 +44,8 @@ import {
     getCartStatuses,
     triggerOrderSync,
     getOrderSyncStatus,
+    claimCustomer,
+    releaseCustomer,
     UserCart,
     CartStatus,
     CartSyncStatus,
@@ -278,6 +281,8 @@ export default function UserCarts() {
     const [selectedCart, setSelectedCart] = useState<UserCart | null>(null);
     const [selectedCartTab, setSelectedCartTab] = useState<"cart" | "map" | "comments">("cart");
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+    const [claimWarning, setClaimWarning] = useState<string | null>(null);
+    const expandedGroupPhoneRef = useRef<string | null>(null);
 
     useEffect(() => {
         if (authLoading) return;
@@ -417,6 +422,46 @@ export default function UserCarts() {
             if (next.has(key)) next.delete(key); else next.add(key);
             return next;
         });
+    };
+
+    const claimAndExpand = async (group: CustomerGroup) => {
+        const isExpanding = !expandedGroups.has(group.key);
+
+        // Release claim on previously expanded group (if different)
+        if (expandedGroupPhoneRef.current && expandedGroupPhoneRef.current !== group.customerPhone && token && user) {
+            releaseCustomer(token, expandedGroupPhoneRef.current, user.username).catch(() => {});
+        }
+
+        if (isExpanding) {
+            // Collapse all other groups, open only this one
+            setExpandedGroups(new Set([group.key]));
+
+            // Claim the new group
+            if (group.customerPhone && token && user) {
+                try {
+                    const { previousClaimer } = await claimCustomer(token, group.customerPhone, user.username);
+                    if (previousClaimer) setClaimWarning(previousClaimer);
+                } catch {}
+                expandedGroupPhoneRef.current = group.customerPhone;
+            }
+        } else {
+            // Collapsing — release this group's claim
+            if (group.customerPhone && token && user) {
+                releaseCustomer(token, group.customerPhone, user.username).catch(() => {});
+            }
+            expandedGroupPhoneRef.current = null;
+            setExpandedGroups(new Set());
+        }
+    };
+
+    const claimAndOpenCart = async (cart: UserCart, tab: "cart" | "map" | "comments") => {
+        if (cart.customer_phone && token && user) {
+            try {
+                const { previousClaimer } = await claimCustomer(token, cart.customer_phone, user.username);
+                if (previousClaimer) setClaimWarning(previousClaimer);
+            } catch {}
+        }
+        openCart(cart, tab);
     };
 
     // ─── Derived filter options ────────────────────────────────────────────────
@@ -724,7 +769,7 @@ export default function UserCarts() {
                                                             <td className="py-2.5 px-3 whitespace-nowrap">
                                                                 {group.customerId ? (
                                                                     <button
-                                                                        onClick={() => openCart(cart, "cart")}
+                                                                        onClick={() => claimAndOpenCart(cart, "cart")}
                                                                         className="font-mono text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
                                                                     >
                                                                         {group.customerId}
@@ -790,7 +835,7 @@ export default function UserCarts() {
                                                                     ? "bg-purple-100 dark:bg-purple-900 hover:bg-purple-200 dark:hover:bg-purple-800"
                                                                     : "bg-white dark:bg-gray-950 hover:bg-purple-50 dark:hover:bg-purple-950"
                                                             }`}
-                                                            onClick={() => toggleGroup(group.key)}
+                                                            onClick={() => claimAndExpand(group)}
                                                         >
                                                             {/* № */}
                                                             <td className="py-2.5 px-3 text-gray-400 text-sm">
@@ -804,7 +849,7 @@ export default function UserCarts() {
                                                                 <div className="flex items-center gap-1.5">
                                                                     {group.customerId ? (
                                                                         <button
-                                                                            onClick={e => { e.stopPropagation(); toggleGroup(group.key); }}
+                                                                            onClick={e => { e.stopPropagation(); claimAndExpand(group); }}
                                                                             className="font-mono text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
                                                                         >
                                                                             {group.customerId}
@@ -1149,6 +1194,34 @@ export default function UserCarts() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* ─── Claim warning dialog ───────────────────────────────────────── */}
+            {claimWarning && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40" onClick={() => setClaimWarning(null)}>
+                    <div
+                        className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl p-6 max-w-sm mx-4 flex flex-col gap-4"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="flex items-start gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+                                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                            </div>
+                            <div>
+                                <p className="font-semibold text-gray-900 dark:text-gray-100">Клиент уже обрабатывается</p>
+                                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                    <span className="font-medium text-amber-600 dark:text-amber-400">{claimWarning}</span> сейчас работает с этим клиентом
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setClaimWarning(null)}
+                            className="self-end rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 transition-colors"
+                        >
+                            Понятно
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* ─── Cart detail modal ──────────────────────────────────────────── */}
             <UserCartModal

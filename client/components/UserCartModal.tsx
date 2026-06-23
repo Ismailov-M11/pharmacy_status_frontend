@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { UserCart, CartItem, CartComment, CartStatus, getCartComments, addCartComment, getCartStatuses, createCartStatus, claimCustomer, releaseCustomer } from "@/lib/userCartApi";
+import { UserCart, CartItem, CartComment, CartStatus, getCartComments, addCartComment, getCartStatuses, createCartStatus, releaseCustomer } from "@/lib/userCartApi";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import {
@@ -489,15 +489,8 @@ export function UserCartModal({ cart, isOpen, onClose, initialTab = "cart", t }:
     const { token, user, role } = useAuth();
     const [activeTab, setActiveTab] = useState<Tab>(initialTab);
     const [statuses, setStatuses] = useState<CartStatus[]>([]);
-    const [claimWarning, setClaimWarning] = useState<string | null>(null);
-
     useEffect(() => {
         if (!isOpen || !cart?.customer_phone || !token || !user) return;
-
-        claimCustomer(token, cart.customer_phone, user.username)
-            .then(({ previousClaimer }) => {
-                setClaimWarning(previousClaimer);
-            })
             .catch(() => {});
 
         return () => {
@@ -583,13 +576,6 @@ export function UserCartModal({ cart, isOpen, onClose, initialTab = "cart", t }:
                     </p>
                 </DialogHeader>
 
-                {claimWarning && (
-                    <div className="mx-6 mb-0 mt-1 flex items-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
-                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                        <span><span className="font-semibold">{claimWarning}</span> сейчас обрабатывает этого клиента</span>
-                        <button onClick={() => setClaimWarning(null)} className="ml-auto text-amber-500 hover:text-amber-700">✕</button>
-                    </div>
-                )}
 
                 {/* Tabs */}
                 <div className="flex border-b border-gray-100 dark:border-gray-800 shrink-0 px-2">
