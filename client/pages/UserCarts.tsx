@@ -697,30 +697,31 @@ export default function UserCarts() {
                 )}
 
                 {/* Table */}
-                <Card>
-                    <CardContent className="pt-6">
-                        {isLoading ? (
-                            <div className="flex flex-col items-center justify-center h-64 gap-3">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
-                                <span className="text-sm text-gray-500 dark:text-gray-400">Загрузка данных...</span>
-                            </div>
-                        ) : filteredCarts.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400 dark:text-gray-500">
-                                <RefreshCw className="h-10 w-10 opacity-30" />
-                                <p className="text-sm font-medium">Данных нет</p>
-                                <p className="text-xs text-center max-w-xs">
-                                    Нажмите <b>«{t.syncNow}»</b> чтобы загрузить корзины пользователей из внешнего API
-                                </p>
-                                <Button onClick={() => setIsConfirmOpen(true)} disabled={isSyncing || syncStatus?.isSyncing} className="mt-2 bg-purple-600 hover:bg-purple-700 text-white gap-2">
-                                    <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
-                                    {t.syncNow}
-                                </Button>
-                            </div>
-                        ) : (
-                            <>
-                                <div className="overflow-auto rounded-md" style={{ maxHeight: "calc(100vh - 100px)" }}>
+                {isLoading ? (
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm flex flex-col items-center justify-center h-64 gap-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Загрузка данных...</span>
+                    </div>
+                ) : filteredCarts.length === 0 ? (
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm flex flex-col items-center justify-center py-16 gap-3 text-gray-400 dark:text-gray-500">
+                        <RefreshCw className="h-10 w-10 opacity-30" />
+                        <p className="text-sm font-medium">Данных нет</p>
+                        <p className="text-xs text-center max-w-xs">
+                            Нажмите <b>«{t.syncNow}»</b> чтобы загрузить корзины пользователей из внешнего API
+                        </p>
+                        <Button onClick={() => setIsConfirmOpen(true)} disabled={isSyncing || syncStatus?.isSyncing} className="mt-2 bg-purple-600 hover:bg-purple-700 text-white gap-2">
+                            <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
+                            {t.syncNow}
+                        </Button>
+                    </div>
+                ) : (
+                    <>
+                        <div
+                            className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm overflow-auto"
+                            style={{ maxHeight: "calc(100vh - 100px)" }}
+                        >
                                     <table className="w-full text-sm">
-                                        <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                                        <thead className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
                                             <tr>
                                                 {[
                                                     { label: "№", a: "left" },
@@ -1064,10 +1065,8 @@ export default function UserCarts() {
                                         </div>
                                     )}
                                 </div>
-                            </>
-                        )}
-                    </CardContent>
-                </Card>
+                    </>
+                )}
             </main>
 
             {/* ─── Filter Dialog ───────────────────────────────────────────── */}
