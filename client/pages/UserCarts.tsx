@@ -282,6 +282,8 @@ export default function UserCarts() {
     const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, percent: 0, phase: "" });
     const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const [page, setPage] = useState(0);
+    const [pageSize, setPageSize] = useState(PAGE_SIZE);
+    const [pageSizeInput, setPageSizeInput] = useState(String(PAGE_SIZE));
     const [query, setQuery] = useState("");
     const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
     const [pendingFilters, setPendingFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -546,8 +548,8 @@ export default function UserCarts() {
         if (query !== prevQuery.current) { setPage(0); prevQuery.current = query; }
     }, [query]);
 
-    const totalPages = Math.ceil(filteredGroups.length / PAGE_SIZE);
-    const pageGroups = filteredGroups.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+    const totalPages = Math.ceil(filteredGroups.length / pageSize);
+    const pageGroups = filteredGroups.slice(page * pageSize, (page + 1) * pageSize);
     const applyFilters = () => {
         setFilters(pendingFilters);
         setPage(0);
@@ -792,7 +794,7 @@ export default function UserCarts() {
                                                     const cart = group.carts[0];
                                                     return (
                                                         <tr key={group.key} style={rowBg(gIdx)} className="border-b border-gray-200 dark:border-gray-700 transition-colors hover:!bg-purple-100 dark:hover:!bg-purple-900">
-                                                            <td className="py-2.5 px-3 text-gray-400 text-sm">{page * PAGE_SIZE + gIdx + 1}</td>
+                                                            <td className="py-2.5 px-3 text-gray-400 text-sm">{page * pageSize + gIdx + 1}</td>
                                                             <td className="py-2.5 px-3 whitespace-nowrap">
                                                                 {group.customerId ? (
                                                                     <button
@@ -868,7 +870,7 @@ export default function UserCarts() {
                                                             <td className="py-2.5 px-3 text-gray-400 text-sm whitespace-nowrap">
                                                                 <div className="flex items-center gap-1.5">
                                                                     <ChevronRight className={`h-3.5 w-3.5 text-purple-500 shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} />
-                                                                    {page * PAGE_SIZE + gIdx + 1}
+                                                                    {page * pageSize + gIdx + 1}
                                                                 </div>
                                                             </td>
                                                             {/* ID */}
@@ -1048,36 +1050,61 @@ export default function UserCarts() {
                                 </div>
 
                                 {/* Pagination */}
-                                <div className="mt-2 shrink-0 flex items-center justify-between gap-4 flex-wrap">
-                                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                                        {t.shown}: {Math.min(page * PAGE_SIZE + 1, filteredGroups.length)}–{Math.min((page + 1) * PAGE_SIZE, filteredGroups.length)} {t.of} {filteredGroups.length}
+                                <div className="mt-2 shrink-0 grid grid-cols-3 items-center gap-4">
+                                    {/* Left — shown count */}
+                                    <span className="justify-self-start text-sm text-gray-600 dark:text-gray-400">
+                                        {t.shown}: {Math.min(page * pageSize + 1, filteredGroups.length)}–{Math.min((page + 1) * pageSize, filteredGroups.length)} {t.of} {filteredGroups.length}
                                     </span>
-                                    {totalPages > 1 && (
-                                        <div className="flex items-center gap-1">
-                                            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} className="h-8 w-8 p-0">
-                                                <ChevronLeft className="h-4 w-4" />
-                                            </Button>
-                                            {(() => {
-                                                const pages: (number | "…")[] = [];
-                                                if (totalPages <= 7) for (let i = 0; i < totalPages; i++) pages.push(i);
-                                                else if (page < 4) pages.push(0,1,2,3,4,"…",totalPages-1);
-                                                else if (page >= totalPages-4) pages.push(0,"…",totalPages-5,totalPages-4,totalPages-3,totalPages-2,totalPages-1);
-                                                else pages.push(0,"…",page-1,page,page+1,"…",totalPages-1);
-                                                return pages.map((p, i) =>
-                                                    p === "…" ? (
-                                                        <span key={`e-${i}`} className="px-1 text-gray-400 text-sm">…</span>
-                                                    ) : (
-                                                        <Button key={p} variant={p === page ? "default" : "ghost"} size="sm" className="h-8 w-8 p-0 text-xs" onClick={() => setPage(p as number)}>
-                                                            {(p as number) + 1}
-                                                        </Button>
-                                                    )
-                                                );
-                                            })()}
-                                            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages-1, p+1))} disabled={page >= totalPages-1} className="h-8 w-8 p-0">
-                                                <ChevronRight className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    )}
+
+                                    {/* Center — page numbers */}
+                                    <div className="justify-self-center flex items-center gap-1">
+                                        {totalPages > 1 && (
+                                            <>
+                                                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} className="h-8 w-8 p-0">
+                                                    <ChevronLeft className="h-4 w-4" />
+                                                </Button>
+                                                {(() => {
+                                                    const pages: (number | "…")[] = [];
+                                                    if (totalPages <= 7) for (let i = 0; i < totalPages; i++) pages.push(i);
+                                                    else if (page < 4) pages.push(0,1,2,3,4,"…",totalPages-1);
+                                                    else if (page >= totalPages-4) pages.push(0,"…",totalPages-5,totalPages-4,totalPages-3,totalPages-2,totalPages-1);
+                                                    else pages.push(0,"…",page-1,page,page+1,"…",totalPages-1);
+                                                    return pages.map((p, i) =>
+                                                        p === "…" ? (
+                                                            <span key={`e-${i}`} className="px-1 text-gray-400 text-sm">…</span>
+                                                        ) : (
+                                                            <Button key={p} variant={p === page ? "default" : "ghost"} size="sm" className="h-8 w-8 p-0 text-xs" onClick={() => setPage(p as number)}>
+                                                                {(p as number) + 1}
+                                                            </Button>
+                                                        )
+                                                    );
+                                                })()}
+                                                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages-1, p+1))} disabled={page >= totalPages-1} className="h-8 w-8 p-0">
+                                                    <ChevronRight className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    {/* Right — rows-per-page input (commits on Enter) */}
+                                    <div className="justify-self-end flex items-center gap-1.5">
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            value={pageSizeInput}
+                                            onChange={(e) => setPageSizeInput(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") {
+                                                    const n = Math.max(1, Math.floor(Number(pageSizeInput) || 0));
+                                                    setPageSize(n);
+                                                    setPageSizeInput(String(n));
+                                                    setPage(0);
+                                                }
+                                            }}
+                                            className="w-16 h-8 px-2 text-sm text-center border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none focus:border-purple-400"
+                                        />
+                                        <span className="text-sm text-gray-500 dark:text-gray-400">/ стр.</span>
+                                    </div>
                                 </div>
                     </>
                 )}
