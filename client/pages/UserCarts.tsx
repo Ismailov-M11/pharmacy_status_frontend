@@ -624,6 +624,10 @@ export default function UserCarts() {
         () => filteredCarts.filter((c) => c.cart_status === "processed").reduce((sum, c) => sum + (c.invoice_total || 0), 0),
         [filteredCarts]
     );
+    const deliveredSum = useMemo(
+        () => filteredCarts.filter((c) => c.order_status === "delivered").reduce((sum, c) => sum + (c.invoice_total || 0), 0),
+        [filteredCarts]
+    );
 
     if (authLoading) {
         return (
@@ -674,6 +678,11 @@ export default function UserCarts() {
                             {processedSum > 0 && (
                                 <span className="text-[11px] text-blue-600 dark:text-blue-400 whitespace-nowrap border-l border-purple-200 dark:border-purple-800 pl-2">
                                     Обработано: <b>{formatSum(processedSum)} {t.sum}</b>
+                                </span>
+                            )}
+                            {deliveredSum > 0 && (
+                                <span className="text-[11px] text-green-600 dark:text-green-400 whitespace-nowrap border-l border-purple-200 dark:border-purple-800 pl-2">
+                                    Доставлено: <b>{formatSum(deliveredSum)} {t.sum}</b>
                                 </span>
                             )}
                         </div>
