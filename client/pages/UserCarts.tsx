@@ -529,7 +529,10 @@ export default function UserCarts() {
                 (c.comment ?? "").toLowerCase().includes(q)
             );
         }
-        if (filters.status && filters.status !== "all") result = result.filter((c) => c.cart_status === filters.status);
+        // Match the *displayed* status: order_status takes precedence over cart_status in the table,
+        // so a cart_status filter must also require order_status to be pending (otherwise the row
+        // shows "Удалён"/"Доставлен" etc., not the chosen cart status).
+        if (filters.status && filters.status !== "all") result = result.filter((c) => (c.order_status ?? "pending") === "pending" && c.cart_status === filters.status);
         if (filters.dateFrom) { const from = new Date(filters.dateFrom); result = result.filter((c) => new Date(c.creation_date) >= from); }
         if (filters.dateTo) { const to = new Date(filters.dateTo); to.setHours(23,59,59,999); result = result.filter((c) => new Date(c.creation_date) <= to); }
         if (filters.pharmacies.length) result = result.filter((c) => filters.pharmacies.includes(c.market_name ?? ""));
