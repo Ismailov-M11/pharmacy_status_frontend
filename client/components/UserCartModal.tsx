@@ -12,6 +12,16 @@ import { toast } from "sonner";
 
 type Tab = "cart" | "map" | "comments";
 
+// creation_date is a naive Tashkent wall-clock time serialized with a trailing "Z";
+// read its UTC components to avoid the browser re-applying a +5h offset.
+function formatCartDate(value: string | Date | null | undefined): string {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return "—";
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${p(d.getUTCDate())}.${p(d.getUTCMonth() + 1)}.${d.getUTCFullYear()} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
+}
+
 interface UserCartModalProps {
     cart: UserCart | null;
     isOpen: boolean;
@@ -576,7 +586,7 @@ export function UserCartModal({ cart, isOpen, onClose, initialTab = "cart", t }:
                         })()}
                     </DialogTitle>
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                        {format(new Date(cart.creation_date), "dd.MM.yyyy HH:mm")}
+                        {formatCartDate(cart.creation_date)}
                         {cart.source && <span className="ml-2 px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500">{cart.source}</span>}
                     </p>
                 </DialogHeader>

@@ -55,6 +55,18 @@ import { statusBadgeClasses } from "@/components/UserCartModal";
 
 const PAGE_SIZE = 50;
 
+// creation_date arrives from the external API as naive Tashkent wall-clock time
+// (e.g. "2026-06-24T11:14:00"), stored in a TIMESTAMP column and serialized with a
+// trailing "Z". new Date(...) would then re-apply the browser's +5h offset. Reading
+// the UTC components gives back the original wall-clock time without the double shift.
+function formatCartDate(value: string | Date | null | undefined): string {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return "—";
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${p(d.getUTCDate())}.${p(d.getUTCMonth() + 1)}.${d.getUTCFullYear()} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
+}
+
 function formatSum(n: number): string {
     return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
@@ -808,7 +820,7 @@ export default function UserCarts() {
                                                             <td className="py-2.5 px-3 text-gray-800 dark:text-gray-200 whitespace-nowrap text-sm">{customerName(cart)}</td>
                                                             <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300 whitespace-nowrap font-medium">{cart.customer_phone}</td>
                                                             <td className="py-2.5 px-3 text-gray-600 dark:text-gray-400 text-xs whitespace-nowrap">
-                                                                {format(new Date(cart.creation_date), "dd.MM.yyyy HH:mm")}
+                                                                {formatCartDate(cart.creation_date)}
                                                             </td>
                                                             <td className="py-2.5 px-3 text-gray-800 dark:text-gray-200 text-xs">{cart.market_name}</td>
                                                             <td className="py-2.5 px-3 text-gray-500 dark:text-gray-400 max-w-[160px] truncate text-xs">{cart.market_address}</td>
@@ -897,7 +909,7 @@ export default function UserCarts() {
                                                             </td>
                                                             {/* Дата — самая новая */}
                                                             <td className="py-2.5 px-3 text-gray-600 dark:text-gray-400 text-xs whitespace-nowrap">
-                                                                {format(new Date(newestCart.creation_date), "dd.MM.yyyy HH:mm")}
+                                                                {formatCartDate(newestCart.creation_date)}
                                                             </td>
                                                             {/* Аптека */}
                                                             <td className="py-2.5 px-3 text-gray-800 dark:text-gray-200 text-xs">
@@ -993,7 +1005,7 @@ export default function UserCarts() {
                                                                 <td className="py-2.5 px-3 text-gray-600 dark:text-gray-400 text-xs whitespace-nowrap">{customerName(cart)}</td>
                                                                 <td className="py-2.5 px-3 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">{cart.customer_phone}</td>
                                                                 <td className="py-2.5 px-3 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">
-                                                                    {format(new Date(cart.creation_date), "dd.MM.yyyy HH:mm")}
+                                                                    {formatCartDate(cart.creation_date)}
                                                                 </td>
                                                                 <td className="py-2.5 px-3 text-gray-900 dark:text-gray-100 text-xs">{cart.market_name}</td>
                                                                 <td className="py-2.5 px-3 text-gray-500 dark:text-gray-400 max-w-[160px] truncate text-xs">{cart.market_address}</td>
