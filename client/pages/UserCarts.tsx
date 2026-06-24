@@ -616,12 +616,16 @@ export default function UserCarts() {
         () => filteredCarts.reduce((sum, c) => sum + (c.invoice_total || 0), 0),
         [filteredCarts]
     );
+    // Sums use the *displayed* status: order_status overrides cart_status in the table, so
+    // "Не обработано"/"Обработано" only count carts whose effective status is that cart_status
+    // (i.e. order_status is still pending). Otherwise deleted/delivered/cancelled carts would
+    // be miscounted as unprocessed/processed.
     const unprocessedSum = useMemo(
-        () => filteredCarts.filter((c) => c.cart_status === "unprocessed").reduce((sum, c) => sum + (c.invoice_total || 0), 0),
+        () => filteredCarts.filter((c) => (c.order_status ?? "pending") === "pending" && c.cart_status === "unprocessed").reduce((sum, c) => sum + (c.invoice_total || 0), 0),
         [filteredCarts]
     );
     const processedSum = useMemo(
-        () => filteredCarts.filter((c) => c.cart_status === "processed").reduce((sum, c) => sum + (c.invoice_total || 0), 0),
+        () => filteredCarts.filter((c) => (c.order_status ?? "pending") === "pending" && c.cart_status === "processed").reduce((sum, c) => sum + (c.invoice_total || 0), 0),
         [filteredCarts]
     );
     const deliveredSum = useMemo(
