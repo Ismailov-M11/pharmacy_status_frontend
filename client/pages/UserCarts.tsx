@@ -661,29 +661,34 @@ export default function UserCarts() {
                         </p>
                     </div>
 
-                    {/* Total sum — compact inline pill */}
+                    {/* Total sum — compact pill, each block: label on top, sum below */}
                     {filteredCarts.length > 0 && (
-                        <div className="flex items-center gap-2 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-lg px-3 py-1">
-                            <span className="text-[10px] font-semibold uppercase tracking-wide text-purple-500 dark:text-purple-400">
-                                {activeFilterCount(filters) > 0 ? "Сумма по фильтру" : "Сумма корзин"}
-                            </span>
-                            <span className="text-base font-bold text-purple-700 dark:text-purple-300 whitespace-nowrap">
-                                {formatSum(totalSum)} {t.sum}
-                            </span>
-                            {unprocessedSum > 0 && (
-                                <span className="text-[11px] text-yellow-600 dark:text-yellow-400 whitespace-nowrap border-l border-purple-200 dark:border-purple-800 pl-2">
-                                    Не обработано: <b>{formatSum(unprocessedSum)} {t.sum}</b>
+                        <div className="flex items-stretch gap-3 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-lg px-3 py-1.5">
+                            <div className="flex flex-col justify-center">
+                                <span className="text-[9px] font-semibold uppercase tracking-wide text-purple-500 dark:text-purple-400 whitespace-nowrap leading-tight">
+                                    {activeFilterCount(filters) > 0 ? "Сумма по фильтру" : "Сумма корзин"}
                                 </span>
+                                <span className="text-base font-bold text-purple-700 dark:text-purple-300 whitespace-nowrap leading-tight">
+                                    {formatSum(totalSum)} {t.sum}
+                                </span>
+                            </div>
+                            {unprocessedSum > 0 && (
+                                <div className="flex flex-col justify-center border-l border-purple-200 dark:border-purple-800 pl-3">
+                                    <span className="text-[9px] font-semibold uppercase tracking-wide text-yellow-600 dark:text-yellow-400 whitespace-nowrap leading-tight">Не обработано</span>
+                                    <span className="text-sm font-bold text-yellow-600 dark:text-yellow-400 whitespace-nowrap leading-tight">{formatSum(unprocessedSum)} {t.sum}</span>
+                                </div>
                             )}
                             {processedSum > 0 && (
-                                <span className="text-[11px] text-blue-600 dark:text-blue-400 whitespace-nowrap border-l border-purple-200 dark:border-purple-800 pl-2">
-                                    Обработано: <b>{formatSum(processedSum)} {t.sum}</b>
-                                </span>
+                                <div className="flex flex-col justify-center border-l border-purple-200 dark:border-purple-800 pl-3">
+                                    <span className="text-[9px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400 whitespace-nowrap leading-tight">Обработано</span>
+                                    <span className="text-sm font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap leading-tight">{formatSum(processedSum)} {t.sum}</span>
+                                </div>
                             )}
                             {deliveredSum > 0 && (
-                                <span className="text-[11px] text-green-600 dark:text-green-400 whitespace-nowrap border-l border-purple-200 dark:border-purple-800 pl-2">
-                                    Доставлено: <b>{formatSum(deliveredSum)} {t.sum}</b>
-                                </span>
+                                <div className="flex flex-col justify-center border-l border-purple-200 dark:border-purple-800 pl-3">
+                                    <span className="text-[9px] font-semibold uppercase tracking-wide text-green-600 dark:text-green-400 whitespace-nowrap leading-tight">Доставлено</span>
+                                    <span className="text-sm font-bold text-green-600 dark:text-green-400 whitespace-nowrap leading-tight">{formatSum(deliveredSum)} {t.sum}</span>
+                                </div>
                             )}
                         </div>
                     )}
