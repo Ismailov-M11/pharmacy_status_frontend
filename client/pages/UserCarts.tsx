@@ -663,7 +663,7 @@ export default function UserCarts() {
 
                     {/* Total sum — compact pill, each block: label on top, sum below */}
                     {filteredCarts.length > 0 && (
-                        <div className="flex items-stretch gap-3 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-lg px-3 py-1.5">
+                        <div className="mx-auto flex items-stretch gap-3 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-lg px-3 py-1.5">
                             <div className="flex flex-col justify-center">
                                 <span className="text-[9px] font-semibold uppercase tracking-wide text-purple-500 dark:text-purple-400 whitespace-nowrap leading-tight">
                                     {activeFilterCount(filters) > 0 ? "Сумма по фильтру" : "Сумма корзин"}
@@ -693,8 +693,8 @@ export default function UserCarts() {
                         </div>
                     )}
 
-                    {/* Stats + actions — pushed to the far right */}
-                    <div className="flex items-center gap-2 shrink-0 ml-auto">
+                    {/* Stats + actions */}
+                    <div className="flex items-center gap-2 shrink-0">
                         {allCarts.length > 0 && (
                             <div className="hidden lg:flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mr-1">
                                 <span>{t.total || "Всего"}: <b className="text-gray-700 dark:text-gray-300">{filteredCarts.length}</b></span>
