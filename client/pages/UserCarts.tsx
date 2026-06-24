@@ -246,12 +246,18 @@ interface CustomerGroup {
   claimedAt: string | null;
 }
 
+// Group key for a cart — carts of the same customer share it. Kept in one place so
+// grouping and group-level filtering stay consistent.
+function cartGroupKey(cart: UserCart): string {
+  return cart.customer_id != null
+    ? `id:${cart.customer_id}`
+    : `phone:${cart.customer_phone ?? "unknown"}`;
+}
+
 function groupCarts(carts: UserCart[]): CustomerGroup[] {
   const map = new Map<string, CustomerGroup>();
   for (const cart of carts) {
-    const key = cart.customer_id != null
-      ? `id:${cart.customer_id}`
-      : `phone:${cart.customer_phone ?? "unknown"}`;
+    const key = cartGroupKey(cart);
     if (!map.has(key)) {
       map.set(key, {
         key,
@@ -548,10 +554,15 @@ export default function UserCarts() {
             });
         }
         if (filters.sources.length) result = result.filter((c) => filters.sources.includes(c.source ?? ""));
-        if (filters.commentUsers.length) result = result.filter((c) => {
-            if (!c.comment_by) return filters.commentUsers.includes("(Пустой)");
-            return filters.commentUsers.includes(c.comment_by);
-        });
+        if (filters.commentUsers.length) {
+            // Group-level: keep a cart if ANY cart of the same customer matches the selected
+            // user(s). This lets "Кем" combine with the history-status filter even when the
+            // status and the comment live on different carts of the same customer.
+            const matchesUser = (c: UserCart) =>
+                c.comment_by ? filters.commentUsers.includes(c.comment_by) : filters.commentUsers.includes("(Пустой)");
+            const matchingGroupKeys = new Set(allCarts.filter(matchesUser).map(cartGroupKey));
+            result = result.filter((c) => matchingGroupKeys.has(cartGroupKey(c)));
+        }
         if (filters.orderStatus) result = result.filter((c) => (c.order_status ?? "pending") === filters.orderStatus);
         return result;
     }, [allCarts, query, filters]);
