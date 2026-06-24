@@ -342,7 +342,7 @@ function CreateCampaignModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg dark:bg-gray-800 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl w-[95vw] dark:bg-gray-800 dark:border-gray-700 max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center">
@@ -352,7 +352,7 @@ function CreateCampaignModal({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 py-2 min-w-0">
           {/* Type selection */}
           <div className="flex flex-col gap-1.5">
             <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Тип кампании</span>
@@ -422,7 +422,7 @@ function CreateCampaignModal({
                 </div>
 
                 {/* Campaign cards */}
-                <div className="max-h-64 overflow-y-auto p-2 space-y-1.5">
+                <div className="max-h-64 overflow-y-auto overflow-x-hidden p-2 space-y-1.5">
                   {existingLoading ? (
                     <div className="flex flex-col items-center justify-center py-8 text-sm text-gray-400 gap-2">
                       <RefreshCw className="h-5 w-5 animate-spin text-purple-400" />
