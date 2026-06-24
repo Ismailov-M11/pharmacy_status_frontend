@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -272,6 +272,19 @@ function CreateCampaignModal({
     return () => { cancelled = true; };
   }, [showExisting, existingSearch, open, token, baseUrl]);
 
+  // Collapse campaigns with identical text into a single card
+  const dedupedItems = useMemo(() => {
+    const seen = new Set<string>();
+    const out: Campaign[] = [];
+    for (const c of existingItems) {
+      const key = `${c.title ?? ""}|${c.titleRu ?? ""}|${c.body ?? ""}|${c.bodyRu ?? ""}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(c);
+    }
+    return out;
+  }, [existingItems]);
+
   const handleCopyFrom = (campaign: Campaign) => {
     setForm({
       title: campaign.title ?? "",
@@ -428,13 +441,13 @@ function CreateCampaignModal({
                       <RefreshCw className="h-5 w-5 animate-spin text-purple-400" />
                       <span>Загрузка кампаний...</span>
                     </div>
-                  ) : existingItems.length === 0 ? (
+                  ) : dedupedItems.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-8 text-sm text-gray-400 gap-2">
                       <Megaphone className="h-5 w-5 text-gray-300" />
                       <span>{existingSearch ? "Ничего не найдено" : "Нет кампаний"}</span>
                     </div>
                   ) : (
-                    existingItems.map((c) => (
+                    dedupedItems.map((c) => (
                       <button
                         key={c.id}
                         type="button"
@@ -474,9 +487,9 @@ function CreateCampaignModal({
                   )}
                 </div>
 
-                {existingItems.length > 0 && (
+                {dedupedItems.length > 0 && (
                   <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-700 text-center text-xs text-gray-400">
-                    {existingItems.length} кампаний · нажмите на карточку для выбора
+                    {dedupedItems.length} кампаний · нажмите на карточку для выбора
                   </div>
                 )}
               </div>
