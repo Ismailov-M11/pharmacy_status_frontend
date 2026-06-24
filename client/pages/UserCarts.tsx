@@ -643,8 +643,8 @@ export default function UserCarts() {
 
             <main className="flex-1 flex flex-col overflow-hidden w-full px-2 sm:px-3 lg:px-4 pt-3 pb-2">
 
-                {/* Page header — compact single row */}
-                <div className="flex items-center justify-between gap-3 mb-2 shrink-0 flex-wrap">
+                {/* Page header — single row: title + sum pill on the left, actions pushed right */}
+                <div className="flex items-center gap-2 mb-2 shrink-0 min-w-0">
                     {/* Title */}
                     <div className="shrink-0">
                         <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{t.userCarts}</h1>
@@ -688,8 +688,8 @@ export default function UserCarts() {
                         </div>
                     )}
 
-                    {/* Stats + actions */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    {/* Stats + actions — pushed to the far right */}
+                    <div className="flex items-center gap-2 shrink-0 ml-auto">
                         {allCarts.length > 0 && (
                             <div className="hidden lg:flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mr-1">
                                 <span>{t.total || "Всего"}: <b className="text-gray-700 dark:text-gray-300">{filteredCarts.length}</b></span>
