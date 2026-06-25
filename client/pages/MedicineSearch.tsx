@@ -57,6 +57,7 @@ function formatPrice(price: number): string {
 
 function DrugImage({ src, size = 40 }: { src: string | null; size?: number }) {
   const [error, setError] = useState(false);
+  useEffect(() => { setError(false); }, [src]);
   if (!src || error) {
     return (
       <div
