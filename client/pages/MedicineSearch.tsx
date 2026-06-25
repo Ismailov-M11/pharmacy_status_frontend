@@ -968,8 +968,15 @@ export default function MedicineSearch() {
                       >
                         <DrugImage src={drug.imageUrl} size={44} />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                            {drug.name}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                              {drug.name}
+                            </span>
+                            {drug.byPrescription ? (
+                              <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">Рецепт</span>
+                            ) : (
+                              <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">Без рецепта</span>
+                            )}
                           </div>
                           {drug.manufacturer && (
                             <div className="text-xs text-gray-400 dark:text-gray-500 truncate">{drug.manufacturer}</div>
@@ -1003,8 +1010,15 @@ export default function MedicineSearch() {
                       >
                         <DrugImage src={item.drug.imageUrl} size={40} />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                            {item.drug.name}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                              {item.drug.name}
+                            </span>
+                            {item.drug.byPrescription ? (
+                              <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">Рецепт</span>
+                            ) : (
+                              <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">Без рецепта</span>
+                            )}
                           </div>
                           {item.drug.manufacturer && (
                             <div className="text-xs text-gray-400 dark:text-gray-500 truncate">
