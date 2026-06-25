@@ -1234,40 +1234,42 @@ function ListResults({
                 </div>
 
                 {/* Name + address */}
-                <div className="min-w-0 w-56 shrink-0">
+                <div className="flex-1 min-w-0">
                   <div className="font-semibold text-gray-900 dark:text-gray-100 text-base leading-tight">
                     {pharmacy.name}
                   </div>
                   {pharmacy.address && (
-                    <div className="flex items-center gap-1 mt-1">
-                      <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-                      <span className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">{pharmacy.address}</span>
+                    <div className="flex items-start gap-1 mt-1">
+                      <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0 mt-0.5" />
+                      <span className="text-sm text-gray-500 dark:text-gray-400">{pharmacy.address}</span>
                     </div>
                   )}
                 </div>
 
-                {/* Badges */}
-                <div className="flex-1 flex items-center gap-2 flex-wrap">
-                  {pharmacy.phone && (
-                    <a
-                      href={`tel:${pharmacy.phone}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm font-medium hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors"
-                    >
-                      <Phone className="h-3.5 w-3.5" />
-                      {pharmacy.phone}
-                    </a>
-                  )}
-                  {pharmacy.openTime && pharmacy.closeTime && (
-                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm">
-                      <Clock className="h-3.5 w-3.5" />
-                      {pharmacy.openTime.slice(0, 5)} – {pharmacy.closeTime.slice(0, 5)}
-                    </span>
-                  )}
-                  <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-sm font-medium">
-                    {pharmacy.products.length} поз.
+                {/* Phone */}
+                {pharmacy.phone && (
+                  <a
+                    href={`tel:${pharmacy.phone}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm font-medium hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors"
+                  >
+                    <Phone className="h-3.5 w-3.5" />
+                    {pharmacy.phone}
+                  </a>
+                )}
+
+                {/* Hours */}
+                {pharmacy.openTime && pharmacy.closeTime && (
+                  <span className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm">
+                    <Clock className="h-3.5 w-3.5" />
+                    {pharmacy.openTime.slice(0, 5)} – {pharmacy.closeTime.slice(0, 5)}
                   </span>
-                </div>
+                )}
+
+                {/* Positions */}
+                <span className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-sm font-medium">
+                  {pharmacy.products.length} поз.
+                </span>
 
                 {/* Price + expand */}
                 <div className="shrink-0 flex items-center gap-3">
