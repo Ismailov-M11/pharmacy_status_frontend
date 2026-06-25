@@ -24,12 +24,16 @@ import {
   ArrowLeft,
   Building2,
   Loader2,
+  Receipt,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   getMedicineFilterOptions,
   searchDrugs,
   searchStock,
+  searchOrders,
+  OrderResult,
   DrugItem,
   DrugListItem,
   StockPharmacy,
@@ -128,6 +132,15 @@ export default function MedicineSearch() {
   const drugSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const drugSearchAbortRef = useRef<AbortController | null>(null);
 
+  // ── Order search ───────────────────────────────────────────────────────────
+  const [orderQuery, setOrderQuery] = useState("");
+  const [orderResults, setOrderResults] = useState<OrderResult[]>([]);
+  const [isOrderSearching, setIsOrderSearching] = useState(false);
+  const [isOrderDropdownOpen, setIsOrderDropdownOpen] = useState(false);
+  const [selectedOrderCode, setSelectedOrderCode] = useState<string | null>(null);
+  const orderDropdownRef = useRef<HTMLDivElement>(null);
+  const orderSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // ── Drug list ──────────────────────────────────────────────────────────────
   const [drugList, setDrugList] = useState<DrugListItem[]>([]);
 
@@ -176,6 +189,8 @@ export default function MedicineSearch() {
         setIsCityDropdownOpen(false);
       if (drugDropdownRef.current && !drugDropdownRef.current.contains(e.target as Node))
         setIsDrugDropdownOpen(false);
+      if (orderDropdownRef.current && !orderDropdownRef.current.contains(e.target as Node))
+        setIsOrderDropdownOpen(false);
     }
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
@@ -231,6 +246,52 @@ export default function MedicineSearch() {
         item.drug.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
       )
     );
+  };
+
+  // ── Order search ───────────────────────────────────────────────────────────
+  const handleOrderQueryChange = (value: string) => {
+    setOrderQuery(value);
+    setSelectedOrderCode(null);
+    if (orderSearchTimeout.current) clearTimeout(orderSearchTimeout.current);
+    if (value.trim().length < 1) {
+      setOrderResults([]);
+      setIsOrderDropdownOpen(false);
+      return;
+    }
+    orderSearchTimeout.current = setTimeout(async () => {
+      if (!token) return;
+      setIsOrderSearching(true);
+      setIsOrderDropdownOpen(true);
+      try {
+        const res = await searchOrders(token, value.trim());
+        setOrderResults(res.orders);
+      } catch {
+        setOrderResults([]);
+      } finally {
+        setIsOrderSearching(false);
+      }
+    }, 350);
+  };
+
+  const handleSelectOrder = (order: OrderResult) => {
+    setSelectedOrderCode(order.code);
+    setOrderQuery(order.code);
+    setIsOrderDropdownOpen(false);
+    const items: DrugListItem[] = order.items.map((item) => ({
+      drug: {
+        id: item.slug,
+        name: item.name,
+        brand: item.brand,
+        manufacturer: item.manufacturer,
+        imageUrl: item.imageUrl,
+        minPrice: item.price,
+        maxPrice: item.price,
+        byPrescription: false,
+      },
+      quantity: item.quantity,
+    }));
+    setDrugList(items);
+    toast.success(`Заказ ${order.code}: добавлено ${items.length} поз.`);
   };
 
   // ── Stock search ───────────────────────────────────────────────────────────
@@ -412,6 +473,74 @@ export default function MedicineSearch() {
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Поиск лекарств в подключённых аптеках OSON
               </p>
+            </div>
+
+            {/* ── Order search ─────────────────────────────────────────── */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <Receipt className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Загрузить из заказа</h2>
+                <span className="text-xs text-gray-400 dark:text-gray-500 font-normal normal-case">(опционально)</span>
+              </div>
+              <div className="relative" ref={orderDropdownRef}>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  {isOrderSearching && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-purple-500 animate-spin" />
+                  )}
+                  {selectedOrderCode && !isOrderSearching && (
+                    <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                  )}
+                  <input
+                    type="text"
+                    value={orderQuery}
+                    onChange={(e) => handleOrderQueryChange(e.target.value)}
+                    onFocus={() => orderResults.length > 0 && setIsOrderDropdownOpen(true)}
+                    placeholder="Введите номер заказа или телефон клиента..."
+                    className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400/30 transition-all"
+                  />
+                </div>
+                {isOrderDropdownOpen && (
+                  <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg">
+                    {isOrderSearching ? (
+                      <div className="px-4 py-3 text-sm text-gray-400 flex items-center gap-2">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Поиск...
+                      </div>
+                    ) : orderResults.length === 0 ? (
+                      <div className="px-4 py-3 text-sm text-gray-400 text-center">Заказы не найдены</div>
+                    ) : (
+                      <div className="max-h-64 overflow-y-auto p-1">
+                        {orderResults.map((order) => (
+                          <button
+                            key={order.id}
+                            onClick={() => handleSelectOrder(order)}
+                            className="w-full flex items-start gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors text-left"
+                          >
+                            <div className="mt-0.5 shrink-0">
+                              <Receipt className="h-4 w-4 text-purple-500" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold text-gray-800 dark:text-gray-200">{order.code}</span>
+                                <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                                  order.status === "COMPLETED" ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" :
+                                  order.status === "NEW" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400" :
+                                  "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                                }`}>{order.status}</span>
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                {order.marketName && <span>{order.marketName} · </span>}
+                                {order.customerPhone && <span>{order.customerPhone} · </span>}
+                                <span>{order.items.length} поз.</span>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* ── Step 1: Region ────────────────────────────────────────── */}

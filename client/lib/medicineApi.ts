@@ -110,6 +110,46 @@ export async function getPharmacyLocation(
   return response.json();
 }
 
+export interface OrderItem {
+  slug: string;
+  name: string;
+  manufacturer: string | null;
+  brand: string | null;
+  imageUrl: string | null;
+  quantity: number;
+  price: number;
+}
+
+export interface OrderResult {
+  id: number;
+  code: string;
+  status: string;
+  customerPhone: string | null;
+  marketName: string | null;
+  creationDate: string;
+  items: OrderItem[];
+}
+
+export async function searchOrders(
+  token: string,
+  searchKey: string,
+  size = 10
+): Promise<{ orders: OrderResult[]; total: number }> {
+  const response = await fetch(`${BACKEND_URL}/api/oson/medicine/order-search`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ searchKey, page: 0, size }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error((err as any).error || "Order search failed");
+  }
+  return response.json();
+}
+
 export async function searchStock(
   token: string,
   drugs: { id: string; name: string; manufacturer: string | null; quantity: number }[],
