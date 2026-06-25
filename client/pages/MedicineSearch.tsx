@@ -623,7 +623,7 @@ export default function MedicineSearch() {
         // STAGE 1 — Drug selection
         // ════════════════════════════════════════════════════════════════
         <main className="flex-1 overflow-y-auto">
-          <div className="max-w-2xl mx-auto px-4 py-8 flex flex-col gap-6">
+          <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col gap-5">
 
             {/* Title */}
             <div>
@@ -632,6 +632,12 @@ export default function MedicineSearch() {
                 Поиск лекарств в подключённых аптеках OSON
               </p>
             </div>
+
+            {/* ══ Two-column grid ═══════════════════════════════════════ */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+
+              {/* ── RIGHT COLUMN — Order search + Region ─────────────────── */}
+              <div className="flex flex-col gap-5 order-1 lg:order-2">
 
             {/* ── Order search ─────────────────────────────────────────── */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col gap-3">
@@ -932,6 +938,11 @@ export default function MedicineSearch() {
               </div>
             </div>
 
+              </div>{/* end right column */}
+
+              {/* ── LEFT COLUMN — Drug search + button ───────────────────── */}
+              <div className="flex flex-col gap-5 order-2 lg:order-1">
+
             {/* ── Step 2: Drug search ───────────────────────────────────── */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col gap-4">
               <div className="flex items-center gap-2">
@@ -1086,6 +1097,9 @@ export default function MedicineSearch() {
                 </>
               )}
             </Button>
+
+              </div>{/* end left column */}
+            </div>{/* end grid */}
           </div>
         </main>
       ) : (
