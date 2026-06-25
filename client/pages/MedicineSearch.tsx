@@ -1211,8 +1211,26 @@ function ListResults({
   expandedPharmacy: string | null;
   onToggleExpand: (id: string | null) => void;
 }) {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  // After render: measure the widest name+address cell, sync all card grids to that width
+  React.useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    const cells = containerRef.current.querySelectorAll<HTMLElement>("[data-name-cell]");
+    let max = 0;
+    cells.forEach((el) => {
+      el.style.whiteSpace = "nowrap";
+      max = Math.max(max, el.scrollWidth);
+      el.style.whiteSpace = "";
+    });
+    const rows = containerRef.current.querySelectorAll<HTMLElement>("[data-card-row]");
+    rows.forEach((row) => {
+      row.style.gridTemplateColumns = `auto ${max}px 1fr 1fr 1fr 1fr auto`;
+    });
+  }, [pharmacies]);
+
   return (
-    <div className="h-full overflow-y-auto p-4 sm:p-6">
+    <div className="h-full overflow-y-auto p-4 sm:p-6" ref={containerRef}>
       <div className="space-y-3">
         {pharmacies.map((pharmacy, idx) => {
           const isExpanded = expandedPharmacy === pharmacy.id;
@@ -1222,9 +1240,10 @@ function ListResults({
               className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"
             >
               <button
+                data-card-row
                 onClick={() => onToggleExpand(isExpanded ? null : pharmacy.id)}
                 className="w-full grid items-center gap-4 p-5 text-left hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors"
-                style={{ gridTemplateColumns: "88px 1fr 160px 160px 80px 140px 24px" }}
+                style={{ gridTemplateColumns: "auto max-content 1fr 1fr 1fr 1fr auto" }}
               >
                 {/* Rank + image */}
                 <div className="relative shrink-0">
@@ -1235,42 +1254,48 @@ function ListResults({
                 </div>
 
                 {/* Name + address */}
-                <div className="min-w-0">
-                  <div className="font-semibold text-gray-900 dark:text-gray-100 text-base leading-tight">
+                <div data-name-cell>
+                  <div className="font-semibold text-gray-900 dark:text-gray-100 text-base leading-tight whitespace-nowrap">
                     {pharmacy.name}
                   </div>
                   {pharmacy.address && (
                     <div className="flex items-start gap-1 mt-1">
                       <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0 mt-0.5" />
-                      <span className="text-sm text-gray-500 dark:text-gray-400">{pharmacy.address}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">{pharmacy.address}</span>
                     </div>
                   )}
                 </div>
 
                 {/* Phone */}
-                {pharmacy.phone && (
-                  <a
-                    href={`tel:${pharmacy.phone}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm font-medium hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors"
-                  >
-                    <Phone className="h-3.5 w-3.5" />
-                    {pharmacy.phone}
-                  </a>
-                )}
+                <div className="flex justify-center">
+                  {pharmacy.phone ? (
+                    <a
+                      href={`tel:${pharmacy.phone}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm font-medium hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors whitespace-nowrap"
+                    >
+                      <Phone className="h-3.5 w-3.5 shrink-0" />
+                      {pharmacy.phone}
+                    </a>
+                  ) : <span />}
+                </div>
 
                 {/* Hours */}
-                {pharmacy.openTime && pharmacy.closeTime && (
-                  <span className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm">
-                    <Clock className="h-3.5 w-3.5" />
-                    {pharmacy.openTime.slice(0, 5)} – {pharmacy.closeTime.slice(0, 5)}
-                  </span>
-                )}
+                <div className="flex justify-center">
+                  {pharmacy.openTime && pharmacy.closeTime ? (
+                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm whitespace-nowrap">
+                      <Clock className="h-3.5 w-3.5 shrink-0" />
+                      {pharmacy.openTime.slice(0, 5)} – {pharmacy.closeTime.slice(0, 5)}
+                    </span>
+                  ) : <span />}
+                </div>
 
                 {/* Positions */}
-                <span className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-sm font-medium">
-                  {pharmacy.products.length} поз.
-                </span>
+                <div className="flex justify-center">
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-sm font-medium whitespace-nowrap">
+                    {pharmacy.products.length} поз.
+                  </span>
+                </div>
 
                 {/* Price */}
                 <div className="text-lg font-bold text-purple-700 dark:text-purple-400 whitespace-nowrap text-right">
