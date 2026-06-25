@@ -1223,7 +1223,8 @@ function ListResults({
             >
               <button
                 onClick={() => onToggleExpand(isExpanded ? null : pharmacy.id)}
-                className="w-full flex items-center justify-between gap-4 p-5 text-left hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors"
+                className="w-full grid items-center gap-4 p-5 text-left hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors"
+                style={{ gridTemplateColumns: "88px 1fr 160px 160px 80px 140px 24px" }}
               >
                 {/* Rank + image */}
                 <div className="relative shrink-0">
@@ -1271,15 +1272,13 @@ function ListResults({
                   {pharmacy.products.length} поз.
                 </span>
 
-                {/* Price + expand */}
-                <div className="shrink-0 flex items-center gap-3">
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-purple-700 dark:text-purple-400 whitespace-nowrap">
-                      {formatPrice(pharmacy.totalAmount)}
-                    </div>
-                  </div>
-                  <Expand className={`h-5 w-5 text-gray-400 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                {/* Price */}
+                <div className="text-lg font-bold text-purple-700 dark:text-purple-400 whitespace-nowrap text-right">
+                  {formatPrice(pharmacy.totalAmount)}
                 </div>
+
+                {/* Expand */}
+                <Expand className={`h-5 w-5 text-gray-400 transition-transform justify-self-center ${isExpanded ? "rotate-180" : ""}`} />
               </button>
 
               {isExpanded && (
