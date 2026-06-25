@@ -575,11 +575,16 @@ export default function MedicineSearch() {
                               {isExpanded && (
                                 <div className="bg-purple-50/50 dark:bg-purple-900/10 border-t border-purple-100 dark:border-purple-800/30 px-4 py-2 flex flex-col gap-1.5">
                                   {order.items.map((item, idx) => (
-                                    <div key={idx} className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
-                                      <Pill className="h-3.5 w-3.5 text-purple-400 shrink-0" />
-                                      <span className="flex-1 min-w-0 truncate font-medium">{item.name}</span>
+                                    <div key={idx} className="flex items-center gap-3 text-xs text-gray-700 dark:text-gray-300">
+                                      <DrugImage src={item.imageUrl} size={36} />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-medium text-gray-800 dark:text-gray-200 truncate">{item.name}</div>
+                                        {item.manufacturer && (
+                                          <div className="text-gray-400 truncate">{item.manufacturer}</div>
+                                        )}
+                                      </div>
                                       <span className="shrink-0 text-gray-400">×{item.quantity}</span>
-                                      <span className="shrink-0 text-green-600 dark:text-green-400 font-medium">
+                                      <span className="shrink-0 text-green-600 dark:text-green-400 font-medium whitespace-nowrap">
                                         {item.price.toLocaleString("ru-RU")} сум
                                       </span>
                                     </div>
