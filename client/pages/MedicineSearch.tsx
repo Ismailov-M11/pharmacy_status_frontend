@@ -142,7 +142,7 @@ export default function MedicineSearch() {
   const mapRef = useRef<any>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInitialized = useRef(false);
-  const placemarkMapRef = useRef<Map<string, any>>(new Map());
+  const placemarkMapRef = useRef<Record<string, any>>({});
   const [selectedMapPharmacyId, setSelectedMapPharmacyId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -267,7 +267,7 @@ export default function MedicineSearch() {
     if (!lat || !lon || !mapRef.current) return;
     setSelectedMapPharmacyId(pharmacy.id);
     mapRef.current.setCenter([lat, lon], 16, { duration: 400 });
-    const placemark = placemarkMapRef.current.get(pharmacy.id);
+    const placemark = placemarkMapRef.current[pharmacy.id];
     if (placemark) placemark.balloon.open();
   }, []);
 
@@ -313,7 +313,7 @@ export default function MedicineSearch() {
   const renderMapMarkers = useCallback(() => {
     if (!mapRef.current || !window.ymaps || !stockResults) return;
     mapRef.current.geoObjects.removeAll();
-    placemarkMapRef.current.clear();
+    placemarkMapRef.current = {};
     const collection = new window.ymaps.GeoObjectCollection();
     stockResults.forEach((pharmacy) => {
       const lat = Number(pharmacy.latitude);
@@ -339,7 +339,7 @@ export default function MedicineSearch() {
         },
         { preset: "islands#violetDotIcon" }
       );
-      placemarkMapRef.current.set(pharmacy.id, placemark);
+      placemarkMapRef.current[pharmacy.id] = placemark;
       collection.add(placemark);
     });
     mapRef.current.geoObjects.add(collection);
