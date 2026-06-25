@@ -60,6 +60,11 @@ function getBackendRoot(): string {
 
 const BACKEND_URL = getBackendRoot();
 
+export function proxyImageUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  return `${BACKEND_URL}/api/oson/medicine/image-proxy?url=${encodeURIComponent(url)}`;
+}
+
 // ─── API Functions ────────────────────────────────────────────────────────────
 
 export async function getMedicineFilterOptions(

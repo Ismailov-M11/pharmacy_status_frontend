@@ -34,6 +34,7 @@ import {
   searchStock,
   searchOrders,
   getDrugDetail,
+  proxyImageUrl,
   OrderResult,
   DrugDetail,
   DrugItem,
@@ -57,8 +58,9 @@ function formatPrice(price: number): string {
 
 function DrugImage({ src, size = 40 }: { src: string | null; size?: number }) {
   const [error, setError] = useState(false);
+  const proxied = proxyImageUrl(src);
   useEffect(() => { setError(false); }, [src]);
-  if (!src || error) {
+  if (!proxied || error) {
     return (
       <div
         className="rounded-lg bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center shrink-0"
@@ -70,10 +72,10 @@ function DrugImage({ src, size = 40 }: { src: string | null; size?: number }) {
   }
   return (
     <img
-      src={src}
+      src={proxied}
       alt=""
       onError={() => setError(true)}
-      className="rounded-lg object-cover shrink-0"
+      className="rounded-lg object-contain shrink-0"
       style={{ width: size, height: size }}
     />
   );
@@ -532,7 +534,7 @@ export default function MedicineSearch() {
                   <div className="w-52 shrink-0 bg-gradient-to-b from-purple-50 to-white dark:from-purple-900/20 dark:to-gray-900 flex items-center justify-center p-6 rounded-tl-2xl">
                     {drugDetailModal.imageUrl ? (
                       <img
-                        src={drugDetailModal.imageUrl}
+                        src={proxyImageUrl(drugDetailModal.imageUrl)!}
                         alt={drugDetailModal.name}
                         className="max-h-40 max-w-full object-contain"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
