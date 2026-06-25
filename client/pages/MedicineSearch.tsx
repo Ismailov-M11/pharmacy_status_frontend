@@ -623,7 +623,7 @@ export default function MedicineSearch() {
         // STAGE 1 — Drug selection
         // ════════════════════════════════════════════════════════════════
         <main className="flex-1 overflow-y-auto">
-          <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col gap-5">
+          <div className="w-full px-6 py-6 flex flex-col gap-5">
 
             {/* Title */}
             <div>
