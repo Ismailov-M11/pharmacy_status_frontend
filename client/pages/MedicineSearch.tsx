@@ -639,7 +639,7 @@ export default function MedicineSearch() {
               <div className="flex flex-col gap-5 order-1 lg:order-1">
 
             {/* ── Step 1: Region ────────────────────────────────────────── */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col gap-4">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 flex flex-col gap-4">
               <div className="flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-xs font-bold text-purple-700 dark:text-purple-300 shrink-0">1</span>
                 <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Выберите регион</h2>
@@ -826,7 +826,7 @@ export default function MedicineSearch() {
             </div>
 
             {/* ── Order search ─────────────────────────────────────────── */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col gap-3">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 flex flex-col gap-3">
               <div className="flex items-center gap-2">
                 <Receipt className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                 <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Загрузить из заказа</h2>
@@ -943,7 +943,7 @@ export default function MedicineSearch() {
               <div className="flex flex-col gap-5 order-2 lg:order-2">
 
             {/* ── Step 2: Drug search ───────────────────────────────────── */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col gap-4">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 flex flex-col gap-4">
               <div className="flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-xs font-bold text-purple-700 dark:text-purple-300 shrink-0">2</span>
                 <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Добавьте лекарства</h2>
@@ -1240,12 +1240,12 @@ function ListResults({
           return (
             <div
               key={pharmacy.id}
-              className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"
+              className="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-md overflow-hidden"
             >
               <button
                 data-card-row
                 onClick={() => onToggleExpand(isExpanded ? null : pharmacy.id)}
-                className="w-full grid items-center gap-4 p-5 text-left hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors"
+                className="w-full grid items-center gap-4 p-5 text-left hover:bg-gray-100 dark:hover:bg-gray-700/30 transition-colors"
                 style={{ gridTemplateColumns: "auto max-content 1fr 1fr 1fr 1fr auto" }}
               >
                 {/* Rank + image */}
