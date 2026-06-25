@@ -895,12 +895,12 @@ function MapResults({
 }) {
   const withCoords = pharmacies.filter((p) => p.latitude && p.longitude);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   // Scroll selected item into view in sidebar
   useEffect(() => {
     if (!selectedId) return;
-    const el = itemRefs.current.get(selectedId);
+    const el = itemRefs.current[selectedId];
     el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [selectedId]);
 
@@ -927,7 +927,7 @@ function MapResults({
             return (
               <button
                 key={p.id}
-                ref={(el) => { if (el) itemRefs.current.set(p.id, el); else itemRefs.current.delete(p.id); }}
+                ref={(el) => { itemRefs.current[p.id] = el; }}
                 onClick={() => hasCoords && onSelectPharmacy(p)}
                 disabled={!hasCoords}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors ${
