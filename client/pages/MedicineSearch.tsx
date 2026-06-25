@@ -33,7 +33,9 @@ import {
   searchDrugs,
   searchStock,
   searchOrders,
+  getDrugDetail,
   OrderResult,
+  DrugDetail,
   DrugItem,
   DrugListItem,
   StockPharmacy,
@@ -159,6 +161,10 @@ export default function MedicineSearch() {
   const placemarkMapRef = useRef<Record<string, any>>({});
   const [selectedMapPharmacyId, setSelectedMapPharmacyId] = useState<string | null>(null);
 
+  // ── Drug detail modal ──────────────────────────────────────────────────────
+  const [drugDetailModal, setDrugDetailModal] = useState<DrugDetail | null>(null);
+  const [drugDetailLoading, setDrugDetailLoading] = useState(false);
+
   useEffect(() => {
     if (!authLoading && !token) navigate("/login");
   }, [token, authLoading, navigate]);
@@ -257,6 +263,21 @@ export default function MedicineSearch() {
         item.drug.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
       )
     );
+  };
+
+  // ── Drug detail modal ──────────────────────────────────────────────────────
+  const handleOpenDrugDetail = async (slug: string) => {
+    if (!token) return;
+    setDrugDetailLoading(true);
+    setDrugDetailModal(null);
+    try {
+      const detail = await getDrugDetail(token, slug);
+      setDrugDetailModal(detail);
+    } catch {
+      toast.error("Не удалось загрузить данные о препарате");
+    } finally {
+      setDrugDetailLoading(false);
+    }
   };
 
   // ── Order search ───────────────────────────────────────────────────────────
@@ -479,6 +500,108 @@ export default function MedicineSearch() {
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       <Header />
+
+      {/* ── Drug Detail Modal ──────────────────────────────────────────────── */}
+      {(drugDetailModal || drugDetailLoading) && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm"
+          onClick={() => { if (!drugDetailLoading) setDrugDetailModal(null); }}
+        >
+          <div
+            className="w-full sm:max-w-lg bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {drugDetailLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+              </div>
+            ) : drugDetailModal && (
+              <>
+                {/* Image header */}
+                <div className="relative bg-gradient-to-b from-purple-50 to-white dark:from-purple-900/20 dark:to-gray-900 flex items-center justify-center p-8 shrink-0">
+                  <button
+                    onClick={() => setDrugDetailModal(null)}
+                    className="absolute top-3 right-3 p-2 rounded-full bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-700 shadow text-gray-500 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                  {drugDetailModal.imageUrl ? (
+                    <img
+                      src={drugDetailModal.imageUrl}
+                      alt={drugDetailModal.name}
+                      className="max-h-48 max-w-full object-contain"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  ) : (
+                    <div className="w-32 h-32 rounded-2xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                      <Pill className="h-12 w-12 text-purple-400" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="overflow-y-auto flex-1 px-5 pb-6">
+                  {/* Name + meta */}
+                  <div className="py-4 border-b border-gray-100 dark:border-gray-800">
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">
+                      {drugDetailModal.name}
+                    </h2>
+                    {drugDetailModal.brand && (
+                      <p className="text-sm text-purple-600 dark:text-purple-400 mt-0.5">{drugDetailModal.brand}</p>
+                    )}
+                    {drugDetailModal.manufacturer && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{drugDetailModal.manufacturer}</p>
+                    )}
+                  </div>
+
+                  {/* Quick facts */}
+                  <div className="grid grid-cols-2 gap-3 py-4 border-b border-gray-100 dark:border-gray-800">
+                    {(drugDetailModal.minPrice || drugDetailModal.maxPrice) && (
+                      <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-3">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Цена</div>
+                        <div className="text-sm font-semibold text-green-700 dark:text-green-400">
+                          {drugDetailModal.minPrice === drugDetailModal.maxPrice
+                            ? `${(drugDetailModal.minPrice || 0).toLocaleString("ru-RU")} сум`
+                            : `${(drugDetailModal.minPrice || 0).toLocaleString("ru-RU")} – ${(drugDetailModal.maxPrice || 0).toLocaleString("ru-RU")} сум`}
+                        </div>
+                      </div>
+                    )}
+                    <div className={`rounded-xl p-3 ${drugDetailModal.byPrescription ? "bg-red-50 dark:bg-red-900/20" : "bg-blue-50 dark:bg-blue-900/20"}`}>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Рецепт</div>
+                      <div className={`text-sm font-semibold ${drugDetailModal.byPrescription ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400"}`}>
+                        {drugDetailModal.byPrescription ? "Требуется" : "Не требуется"}
+                      </div>
+                    </div>
+                    {drugDetailModal.atcName && (
+                      <div className="col-span-2 bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Действующее вещество</div>
+                        <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{drugDetailModal.atcName}</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Instructions */}
+                  {drugDetailModal.instructions.length > 0 && (
+                    <div className="py-4 flex flex-col gap-4">
+                      {drugDetailModal.instructions.map((instr) => (
+                        <div key={instr.order}>
+                          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">
+                            {instr.title}
+                          </h3>
+                          <div
+                            className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed prose-sm max-w-none [&_p]:mb-2 [&_br]:block"
+                            dangerouslySetInnerHTML={{ __html: instr.description }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {stage === "search" ? (
         // ════════════════════════════════════════════════════════════════
@@ -859,17 +982,22 @@ export default function MedicineSearch() {
                       key={item.drug.id}
                       className="flex items-center gap-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 border border-gray-100 dark:border-gray-700"
                     >
-                      <DrugImage src={item.drug.imageUrl} size={40} />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                          {item.drug.name}
-                        </div>
-                        {item.drug.manufacturer && (
-                          <div className="text-xs text-gray-400 dark:text-gray-500 truncate">
-                            {item.drug.manufacturer}
+                      <button
+                        onClick={() => handleOpenDrugDetail(item.drug.id)}
+                        className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+                      >
+                        <DrugImage src={item.drug.imageUrl} size={40} />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                            {item.drug.name}
                           </div>
-                        )}
-                      </div>
+                          {item.drug.manufacturer && (
+                            <div className="text-xs text-gray-400 dark:text-gray-500 truncate">
+                              {item.drug.manufacturer}
+                            </div>
+                          )}
+                        </div>
+                      </button>
                       {/* Quantity */}
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button

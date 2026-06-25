@@ -133,6 +133,44 @@ export interface OrderResult {
   items: OrderItem[];
 }
 
+export interface DrugInstruction {
+  order: number;
+  title: string;
+  description: string;
+}
+
+export interface DrugDetail {
+  slug: string;
+  name: string;
+  fullName: string | null;
+  brand: string | null;
+  manufacturer: string | null;
+  atcCode: string | null;
+  atcName: string | null;
+  imageUrl: string | null;
+  minPrice: number | null;
+  maxPrice: number | null;
+  byPrescription: boolean;
+  instructions: DrugInstruction[];
+}
+
+export async function getDrugDetail(
+  token: string,
+  slug: string,
+  language: "ru" | "uz" = "ru"
+): Promise<DrugDetail> {
+  const response = await fetch(`${BACKEND_URL}/api/oson/medicine/drug-detail`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ slug, language }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error((err as any).error || "Failed to load drug detail");
+  }
+  return response.json();
+}
+
 export async function searchOrders(
   token: string,
   searchKey: string,
