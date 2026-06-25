@@ -1184,6 +1184,7 @@ export default function MedicineSearch() {
                 pharmacies={stockResults}
                 expandedPharmacy={expandedPharmacy}
                 onToggleExpand={setExpandedPharmacy}
+                drugList={drugList}
               />
             ) : (
               <MapResults
@@ -1206,10 +1207,12 @@ function ListResults({
   pharmacies,
   expandedPharmacy,
   onToggleExpand,
+  drugList,
 }: {
   pharmacies: StockPharmacy[];
   expandedPharmacy: string | null;
   onToggleExpand: (id: string | null) => void;
+  drugList: DrugListItem[];
 }) {
   const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -1309,32 +1312,36 @@ function ListResults({
               {isExpanded && (
                 <div className="border-t border-gray-100 dark:border-gray-700">
                   <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
-                    {pharmacy.products.map((product) => (
-                      <div key={product.id} className="flex items-center gap-3 px-4 py-3">
-                        <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center shrink-0">
-                          <Pill className="h-4 w-4 text-purple-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{product.name}</div>
-                          {product.manufacturer && (
-                            <div className="text-xs text-gray-400 truncate">{product.manufacturer}</div>
-                          )}
-                          <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                            {product.expiration && (
-                              <span className="text-xs text-gray-400">Годен до: {product.expiration}</span>
+                    {pharmacy.products.map((product) => {
+                      const imageUrl = drugList.find((d) => d.drug.id === product.id)?.drug.imageUrl ?? null;
+                      const expiry = product.expiration
+                        ? new Date(product.expiration).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" })
+                        : null;
+                      return (
+                        <div key={product.id} className="flex items-center gap-4 px-5 py-4">
+                          <DrugImage src={imageUrl} size={52} />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-base font-semibold text-gray-800 dark:text-gray-200">{product.name}</div>
+                            {product.manufacturer && (
+                              <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{product.manufacturer}</div>
                             )}
-                            <span className="text-xs text-gray-400">В наличии: {product.stock} шт.</span>
+                            <div className="flex items-center gap-4 mt-1 flex-wrap">
+                              {expiry && (
+                                <span className="text-sm text-gray-400">Годен до: {expiry}</span>
+                              )}
+                              <span className="text-sm text-gray-400">В наличии: {product.stock} шт.</span>
+                            </div>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <div className="text-base font-bold text-gray-800 dark:text-gray-200">{formatPrice(product.price)}</div>
+                            <div className="text-sm text-gray-400 mt-0.5">× {product.quantity} = {formatPrice(product.total)}</div>
                           </div>
                         </div>
-                        <div className="shrink-0 text-right">
-                          <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">{formatPrice(product.price)}</div>
-                          <div className="text-xs text-gray-400">× {product.quantity} = {formatPrice(product.total)}</div>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
-                  <div className="flex justify-end px-4 py-2.5 bg-purple-50 dark:bg-purple-900/20">
-                    <div className="text-sm font-bold text-purple-700 dark:text-purple-300">
+                  <div className="flex justify-end px-5 py-3 bg-purple-50 dark:bg-purple-900/20">
+                    <div className="text-base font-bold text-purple-700 dark:text-purple-300">
                       Итого: {formatPrice(pharmacy.totalAmount)}
                     </div>
                   </div>
