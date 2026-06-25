@@ -181,7 +181,7 @@ export default function MedicineSearch() {
   // ── Drug typeahead ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (drugSearchTimeout.current) clearTimeout(drugSearchTimeout.current);
-    if (!drugQuery.trim() || drugQuery.length < 2 || !token) {
+    if (!drugQuery.trim() || drugQuery.length < 3 || !token) {
       setDrugResults([]);
       setIsDrugDropdownOpen(false);
       return;
