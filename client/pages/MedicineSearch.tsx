@@ -636,8 +636,8 @@ export default function MedicineSearch() {
             {/* ══ Two-column grid ═══════════════════════════════════════ */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
 
-              {/* ── RIGHT COLUMN — Order search + Region ─────────────────── */}
-              <div className="flex flex-col gap-5 order-1 lg:order-2">
+              {/* ── LEFT COLUMN — Order search + Region ──────────────────── */}
+              <div className="flex flex-col gap-5 order-1 lg:order-1">
 
             {/* ── Order search ─────────────────────────────────────────── */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col gap-3">
@@ -938,10 +938,10 @@ export default function MedicineSearch() {
               </div>
             </div>
 
-              </div>{/* end right column */}
+              </div>{/* end left column */}
 
-              {/* ── LEFT COLUMN — Drug search + button ───────────────────── */}
-              <div className="flex flex-col gap-5 order-2 lg:order-1">
+              {/* ── RIGHT COLUMN — Drug search + button ──────────────────── */}
+              <div className="flex flex-col gap-5 order-2 lg:order-2">
 
             {/* ── Step 2: Drug search ───────────────────────────────────── */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col gap-4">
