@@ -22,6 +22,9 @@ import {
   ShoppingBag,
   ChevronDown as Expand,
   FilterX,
+  ArrowLeft,
+  Building2,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -34,22 +37,63 @@ import {
   MedicineFilterOptions,
 } from "@/lib/medicineApi";
 
-// ─── Constants ─────────────────────────────────────────────────────────────────
-
 const UZBEKISTAN_CENTER = [41.2995, 69.2401];
 
 declare global {
-  interface Window {
-    ymaps: any;
-  }
+  interface Window { ymaps: any; }
 }
 
 type ViewTab = "list" | "map";
-
-// ─── Format helpers ─────────────────────────────────────────────────────────────
+type Stage = "search" | "results";
 
 function formatPrice(price: number): string {
   return price.toLocaleString("ru-RU") + " сум";
+}
+
+function DrugImage({ src, size = 40 }: { src: string | null; size?: number }) {
+  const [error, setError] = useState(false);
+  if (!src || error) {
+    return (
+      <div
+        className="rounded-lg bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center shrink-0"
+        style={{ width: size, height: size }}
+      >
+        <Pill className="text-purple-400" style={{ width: size * 0.5, height: size * 0.5 }} />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      onError={() => setError(true)}
+      className="rounded-lg object-cover shrink-0"
+      style={{ width: size, height: size }}
+    />
+  );
+}
+
+function PharmacyImage({ src, size = 48 }: { src: string | null; size?: number }) {
+  const [error, setError] = useState(false);
+  if (!src || error) {
+    return (
+      <div
+        className="rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0"
+        style={{ width: size, height: size }}
+      >
+        <Building2 className="text-gray-400" style={{ width: size * 0.5, height: size * 0.5 }} />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      onError={() => setError(true)}
+      className="rounded-xl object-cover shrink-0"
+      style={{ width: size, height: size }}
+    />
+  );
 }
 
 // ─── Main Component ─────────────────────────────────────────────────────────────
@@ -59,6 +103,8 @@ export default function MedicineSearch() {
   const { token, isLoading: authLoading } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
+
+  const [stage, setStage] = useState<Stage>("search");
 
   // ── Region selectors ───────────────────────────────────────────────────────
   const [filterOptions, setFilterOptions] = useState<MedicineFilterOptions>({
@@ -71,7 +117,6 @@ export default function MedicineSearch() {
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
   const [regionSearch, setRegionSearch] = useState("");
   const [citySearch, setCitySearch] = useState("");
-
   const regionDropdownRef = useRef<HTMLDivElement>(null);
   const cityDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -87,7 +132,7 @@ export default function MedicineSearch() {
   // ── Drug list ──────────────────────────────────────────────────────────────
   const [drugList, setDrugList] = useState<DrugListItem[]>([]);
 
-  // ── Stock search results ───────────────────────────────────────────────────
+  // ── Stock results ──────────────────────────────────────────────────────────
   const [isStockSearching, setIsStockSearching] = useState(false);
   const [stockResults, setStockResults] = useState<StockPharmacy[] | null>(null);
   const [activeView, setActiveView] = useState<ViewTab>("list");
@@ -98,12 +143,10 @@ export default function MedicineSearch() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInitialized = useRef(false);
 
-  // ── Auth guard ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!authLoading && !token) navigate("/login");
   }, [token, authLoading, navigate]);
 
-  // ── Load filter options ────────────────────────────────────────────────────
   useEffect(() => {
     if (!token) return;
     getMedicineFilterOptions(token)
@@ -111,13 +154,10 @@ export default function MedicineSearch() {
       .catch(() => toast.error("Не удалось загрузить список регионов"));
   }, [token]);
 
-  // ── Reload city list when parent region changes ────────────────────────────
   useEffect(() => {
     if (!token || !selectedParentRegion) return;
     getMedicineFilterOptions(token, selectedParentRegion)
-      .then((opts) =>
-        setFilterOptions((prev) => ({ ...prev, regions: opts.regions }))
-      )
+      .then((opts) => setFilterOptions((prev) => ({ ...prev, regions: opts.regions })))
       .catch(() => {});
     setSelectedRegion("");
   }, [token, selectedParentRegion]);
@@ -145,7 +185,6 @@ export default function MedicineSearch() {
       return;
     }
     drugSearchTimeout.current = setTimeout(async () => {
-      // Cancel any in-flight request from a previous keystroke
       if (drugSearchAbortRef.current) drugSearchAbortRef.current.abort();
       drugSearchAbortRef.current = new AbortController();
       setIsDrugSearching(true);
@@ -161,12 +200,9 @@ export default function MedicineSearch() {
         setIsDrugSearching(false);
       }
     }, 350);
-    return () => {
-      if (drugSearchTimeout.current) clearTimeout(drugSearchTimeout.current);
-    };
+    return () => { if (drugSearchTimeout.current) clearTimeout(drugSearchTimeout.current); };
   }, [drugQuery, token]);
 
-  // ── Add drug to list ───────────────────────────────────────────────────────
   const handleAddDrug = (drug: DrugItem) => {
     setDrugList((prev) => {
       if (prev.some((item) => item.drug.id === drug.id)) {
@@ -187,9 +223,7 @@ export default function MedicineSearch() {
   const handleQuantityChange = (id: string, delta: number) => {
     setDrugList((prev) =>
       prev.map((item) =>
-        item.drug.id === id
-          ? { ...item, quantity: Math.max(1, item.quantity + delta) }
-          : item
+        item.drug.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
       )
     );
   };
@@ -209,13 +243,10 @@ export default function MedicineSearch() {
         manufacturer: item.drug.manufacturer,
         quantity: item.quantity,
       }));
-      const res = await searchStock(
-        token,
-        drugs,
-        selectedParentRegion,
-        selectedRegion || undefined
-      );
+      const res = await searchStock(token, drugs, selectedParentRegion, selectedRegion || undefined);
       setStockResults(res.pharmacies);
+      setStage("results");
+      setActiveView("list");
       if (res.pharmacies.length === 0) {
         toast.info("Аптеки, где есть все выбранные лекарства, не найдены");
       }
@@ -226,25 +257,28 @@ export default function MedicineSearch() {
     }
   };
 
-  // ── Map init ───────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (activeView !== "map" || mapInitialized.current || !stockResults) return;
+  const handleBackToSearch = () => {
+    setStage("search");
+    setStockResults(null);
+    mapInitialized.current = false;
+    mapRef.current = null;
+  };
 
+  // ── Map ────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (stage !== "results" || activeView !== "map" || mapInitialized.current || !stockResults) return;
     const existing = document.getElementById("yandex-maps-script");
     if (existing) {
       if (window.ymaps) window.ymaps.ready(() => initMap());
       return;
     }
-
     const script = document.createElement("script");
     script.id = "yandex-maps-script";
     script.src = `https://api-maps.yandex.ru/2.1/?apikey=${import.meta.env.VITE_YANDEX_MAP_KEY}&lang=ru_RU`;
     script.async = true;
-    script.onload = () => {
-      if (window.ymaps) window.ymaps.ready(() => initMap());
-    };
+    script.onload = () => { if (window.ymaps) window.ymaps.ready(() => initMap()); };
     document.head.appendChild(script);
-  }, [activeView, stockResults]);
+  }, [stage, activeView, stockResults]);
 
   const initMap = () => {
     if (!mapContainerRef.current || mapInitialized.current) return;
@@ -270,24 +304,21 @@ export default function MedicineSearch() {
       const lat = Number(pharmacy.latitude);
       const lon = Number(pharmacy.longitude);
       if (!lat || !lon || isNaN(lat) || isNaN(lon)) return;
-
       const drugsList = pharmacy.products
-        .map((p) => `<div style="margin-top:4px;">• ${p.name}: <b>${formatPrice(p.price)}</b> × ${p.quantity} = ${formatPrice(p.total)}</div>`)
+        .map((p) => `<div style="margin-top:4px;">• ${p.name}: <b>${formatPrice(p.price)}</b> × ${p.quantity}</div>`)
         .join("");
-
       const placemark = new window.ymaps.Placemark(
         [lat, lon],
         {
           balloonContent: `
-            <div style="padding:12px; font-family:Arial,sans-serif; max-width:320px;">
-              <div style="font-weight:bold; font-size:14px; margin-bottom:6px;">${pharmacy.name}</div>
-              ${pharmacy.address ? `<div style="font-size:12px; color:#666; margin-bottom:4px;">📍 ${pharmacy.address}</div>` : ""}
-              ${pharmacy.phone ? `<div style="font-size:12px; color:#666; margin-bottom:4px;">📞 <a href="tel:${pharmacy.phone}" style="color:#3b82f6;">${pharmacy.phone}</a></div>` : ""}
-              ${pharmacy.openTime && pharmacy.closeTime ? `<div style="font-size:12px; color:#666; margin-bottom:8px;">🕐 ${pharmacy.openTime.slice(0,5)} – ${pharmacy.closeTime.slice(0,5)}</div>` : ""}
-              <div style="font-size:12px; color:#333;">${drugsList}</div>
-              <div style="margin-top:8px; padding-top:6px; border-top:1px solid #eee; font-size:13px; font-weight:bold; color:#7c3aed;">
-                Итого: ${formatPrice(pharmacy.totalAmount)}
-              </div>
+            <div style="padding:12px; font-family:Arial,sans-serif; max-width:300px;">
+              ${pharmacy.imageUrl ? `<img src="${pharmacy.imageUrl}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:8px;" onerror="this.style.display='none'"/>` : ""}
+              <div style="font-weight:bold;font-size:14px;margin-bottom:4px;">${pharmacy.name}</div>
+              ${pharmacy.address ? `<div style="font-size:12px;color:#666;margin-bottom:4px;">📍 ${pharmacy.address}</div>` : ""}
+              ${pharmacy.phone ? `<div style="font-size:12px;color:#666;margin-bottom:4px;">📞 ${pharmacy.phone}</div>` : ""}
+              ${pharmacy.openTime && pharmacy.closeTime ? `<div style="font-size:12px;color:#666;margin-bottom:8px;">🕐 ${pharmacy.openTime.slice(0,5)} – ${pharmacy.closeTime.slice(0,5)}</div>` : ""}
+              <div style="font-size:12px;color:#333;border-top:1px solid #eee;padding-top:6px;">${drugsList}</div>
+              <div style="margin-top:8px;font-size:13px;font-weight:bold;color:#7c3aed;">Итого: ${formatPrice(pharmacy.totalAmount)}</div>
             </div>
           `,
         },
@@ -296,19 +327,13 @@ export default function MedicineSearch() {
       collection.add(placemark);
     });
     mapRef.current.geoObjects.add(collection);
-
-    // Fit bounds if there are markers
     if (collection.getLength() > 0) {
-      try {
-        mapRef.current.setBounds(collection.getBounds(), { checkZoomRange: true, zoomMargin: 40 });
-      } catch {}
+      try { mapRef.current.setBounds(collection.getBounds(), { checkZoomRange: true, zoomMargin: 40 }); } catch {}
     }
   }, [stockResults]);
 
   useEffect(() => {
-    if (activeView === "map" && mapInitialized.current && stockResults) {
-      renderMapMarkers();
-    }
+    if (activeView === "map" && mapInitialized.current && stockResults) renderMapMarkers();
   }, [stockResults, activeView, renderMapMarkers]);
 
   useEffect(() => {
@@ -321,7 +346,7 @@ export default function MedicineSearch() {
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-        <span className="text-gray-500 dark:text-gray-400">Загрузка...</span>
+        <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
       </div>
     );
   }
@@ -338,398 +363,379 @@ export default function MedicineSearch() {
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       <Header />
 
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* ── Top control bar ───────────────────────────────────────────────── */}
-        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4 flex flex-col gap-4 shrink-0 relative z-20">
-          {/* Title */}
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              Справочник лекарств
-            </h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              Поиск лекарств в аптеках OSON по регионам
-            </p>
-          </div>
+      {stage === "search" ? (
+        // ════════════════════════════════════════════════════════════════
+        // STAGE 1 — Drug selection
+        // ════════════════════════════════════════════════════════════════
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-2xl mx-auto px-4 py-8 flex flex-col gap-6">
 
-          {/* Region + City selectors */}
-          <div className="flex flex-wrap gap-3">
-            {/* Регион (required) */}
-            <div className="relative w-64" ref={regionDropdownRef}>
-              <button
-                onClick={() => setIsRegionDropdownOpen(!isRegionDropdownOpen)}
-                className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md border transition-colors ${
-                  selectedParentRegion
-                    ? "border-purple-400 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300"
-                    : "border-red-300 dark:border-red-700 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300"
-                } hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none`}
-              >
-                <span className="truncate">
-                  {selectedParentRegion || (
-                    <span className="text-red-500 dark:text-red-400">
-                      * Выберите регион
+            {/* Title */}
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Справочник лекарств</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Поиск лекарств в подключённых аптеках OSON
+              </p>
+            </div>
+
+            {/* ── Step 1: Region ────────────────────────────────────────── */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col gap-4">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-xs font-bold text-purple-700 dark:text-purple-300 shrink-0">1</span>
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Выберите регион</h2>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                {/* Регион */}
+                <div className="relative flex-1 min-w-[180px]" ref={regionDropdownRef}>
+                  <button
+                    onClick={() => setIsRegionDropdownOpen(!isRegionDropdownOpen)}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 text-sm rounded-xl border-2 transition-all ${
+                      selectedParentRegion
+                        ? "border-purple-400 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300 font-medium"
+                        : "border-dashed border-red-300 dark:border-red-700 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+                    } hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none`}
+                  >
+                    <span className="truncate">
+                      {selectedParentRegion || <span className="text-red-400">* Регион (обязательно)</span>}
                     </span>
-                  )}
-                </span>
-                <ChevronDown className="h-4 w-4 text-gray-400 shrink-0 ml-2" />
-              </button>
-              {isRegionDropdownOpen && (
-                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
-                  <div className="p-2 border-b border-gray-100 dark:border-gray-700">
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-                      <input
-                        type="text"
-                        placeholder="Поиск региона..."
-                        value={regionSearch}
-                        onChange={(e) => setRegionSearch(e.target.value)}
-                        className="w-full pl-8 pr-2 py-1.5 text-sm rounded bg-gray-50 dark:bg-gray-900 border border-transparent focus:outline-none focus:border-purple-300"
-                        autoFocus
-                      />
-                    </div>
-                  </div>
-                  <div className="max-h-56 overflow-y-auto p-1">
-                    {filteredParentRegions.length === 0 ? (
-                      <div className="px-3 py-2 text-sm text-gray-400 text-center">Ничего не найдено</div>
-                    ) : filteredParentRegions.map((r) => (
-                      <button
-                        key={r.parent_region_ru}
-                        onClick={() => {
-                          setSelectedParentRegion(r.parent_region_ru);
-                          setIsRegionDropdownOpen(false);
-                          setRegionSearch("");
-                          setStockResults(null);
-                        }}
-                        className={`w-full text-left px-3 py-2 text-sm rounded hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors ${
-                          selectedParentRegion === r.parent_region_ru
-                            ? "bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 font-medium"
-                            : "text-gray-700 dark:text-gray-300"
-                        }`}
-                      >
-                        {language === "uz" ? r.parent_region_uz || r.parent_region_ru : r.parent_region_ru}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Город/Район (optional) */}
-            <div className="relative w-64" ref={cityDropdownRef}>
-              <button
-                disabled={!selectedParentRegion}
-                onClick={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
-                className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md border transition-colors ${
-                  !selectedParentRegion
-                    ? "border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
-                    : selectedRegion
-                    ? "border-purple-400 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300"
-                    : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600"
-                } focus:outline-none`}
-              >
-                <span className="truncate">
-                  {selectedRegion || "Город / Район (опционально)"}
-                </span>
-                <div className="flex items-center gap-1 shrink-0 ml-2">
-                  {selectedRegion && (
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedRegion("");
-                        setStockResults(null);
-                      }}
-                      className="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
-                    >
-                      <FilterX className="h-3 w-3 text-gray-400" />
+                    <ChevronDown className="h-4 w-4 text-gray-400 shrink-0 ml-2" />
+                  </button>
+                  {isRegionDropdownOpen && (
+                    <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg">
+                      <div className="p-2 border-b border-gray-100 dark:border-gray-700">
+                        <div className="relative">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                          <input
+                            type="text"
+                            placeholder="Поиск..."
+                            value={regionSearch}
+                            onChange={(e) => setRegionSearch(e.target.value)}
+                            className="w-full pl-8 pr-2 py-1.5 text-sm rounded-lg bg-gray-50 dark:bg-gray-900 border border-transparent focus:outline-none focus:border-purple-300"
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+                      <div className="max-h-52 overflow-y-auto p-1">
+                        {filteredParentRegions.length === 0 ? (
+                          <div className="px-3 py-2 text-sm text-gray-400 text-center">Ничего не найдено</div>
+                        ) : filteredParentRegions.map((r) => (
+                          <button
+                            key={r.parent_region_ru}
+                            onClick={() => {
+                              setSelectedParentRegion(r.parent_region_ru);
+                              setIsRegionDropdownOpen(false);
+                              setRegionSearch("");
+                            }}
+                            className={`w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors ${
+                              selectedParentRegion === r.parent_region_ru
+                                ? "bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 font-medium"
+                                : "text-gray-700 dark:text-gray-300"
+                            }`}
+                          >
+                            {language === "uz" ? r.parent_region_uz || r.parent_region_ru : r.parent_region_ru}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
-                  <ChevronDown className="h-4 w-4 text-gray-400" />
                 </div>
-              </button>
-              {isCityDropdownOpen && selectedParentRegion && (
-                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
-                  <div className="p-2 border-b border-gray-100 dark:border-gray-700">
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-                      <input
-                        type="text"
-                        placeholder="Поиск города/района..."
-                        value={citySearch}
-                        onChange={(e) => setCitySearch(e.target.value)}
-                        className="w-full pl-8 pr-2 py-1.5 text-sm rounded bg-gray-50 dark:bg-gray-900 border border-transparent focus:outline-none focus:border-purple-300"
-                        autoFocus
-                      />
+
+                {/* Город/Район */}
+                <div className="relative flex-1 min-w-[180px]" ref={cityDropdownRef}>
+                  <button
+                    disabled={!selectedParentRegion}
+                    onClick={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 text-sm rounded-xl border-2 transition-all ${
+                      !selectedParentRegion
+                        ? "border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
+                        : selectedRegion
+                        ? "border-purple-400 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300 font-medium"
+                        : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600"
+                    } focus:outline-none`}
+                  >
+                    <span className="truncate">{selectedRegion || "Район (опционально)"}</span>
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                      {selectedRegion && (
+                        <span
+                          onClick={(e) => { e.stopPropagation(); setSelectedRegion(""); }}
+                          className="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                        >
+                          <FilterX className="h-3 w-3 text-gray-400" />
+                        </span>
+                      )}
+                      <ChevronDown className="h-4 w-4 text-gray-400" />
                     </div>
-                  </div>
-                  <div className="max-h-56 overflow-y-auto p-1">
-                    {filteredRegions.length === 0 ? (
-                      <div className="px-3 py-2 text-sm text-gray-400 text-center">Ничего не найдено</div>
-                    ) : filteredRegions.map((r) => (
+                  </button>
+                  {isCityDropdownOpen && selectedParentRegion && (
+                    <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg">
+                      <div className="p-2 border-b border-gray-100 dark:border-gray-700">
+                        <div className="relative">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                          <input
+                            type="text"
+                            placeholder="Поиск..."
+                            value={citySearch}
+                            onChange={(e) => setCitySearch(e.target.value)}
+                            className="w-full pl-8 pr-2 py-1.5 text-sm rounded-lg bg-gray-50 dark:bg-gray-900 border border-transparent focus:outline-none focus:border-purple-300"
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+                      <div className="max-h-52 overflow-y-auto p-1">
+                        {filteredRegions.length === 0 ? (
+                          <div className="px-3 py-2 text-sm text-gray-400 text-center">Ничего не найдено</div>
+                        ) : filteredRegions.map((r) => (
+                          <button
+                            key={r.region_ru}
+                            onClick={() => {
+                              setSelectedRegion(r.region_ru);
+                              setIsCityDropdownOpen(false);
+                              setCitySearch("");
+                            }}
+                            className={`w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors ${
+                              selectedRegion === r.region_ru
+                                ? "bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 font-medium"
+                                : "text-gray-700 dark:text-gray-300"
+                            }`}
+                          >
+                            {language === "uz" ? r.region_uz || r.region_ru : r.region_ru}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ── Step 2: Drug search ───────────────────────────────────── */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col gap-4">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-xs font-bold text-purple-700 dark:text-purple-300 shrink-0">2</span>
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Добавьте лекарства</h2>
+              </div>
+
+              {/* Search input */}
+              <div className="relative" ref={drugDropdownRef}>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder={canSearch ? "Введите название лекарства..." : "Сначала выберите регион"}
+                    value={drugQuery}
+                    onChange={(e) => setDrugQuery(e.target.value)}
+                    disabled={!canSearch}
+                    className={`pl-10 h-11 rounded-xl ${!canSearch ? "bg-gray-50 dark:bg-gray-800 cursor-not-allowed" : ""}`}
+                  />
+                  {isDrugSearching && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="h-4 w-4 animate-spin text-purple-500" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Typeahead dropdown */}
+                {isDrugDropdownOpen && drugResults.length > 0 && (
+                  <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl max-h-80 overflow-y-auto">
+                    {drugResults.map((drug) => (
                       <button
-                        key={r.region_ru}
-                        onClick={() => {
-                          setSelectedRegion(r.region_ru);
-                          setIsCityDropdownOpen(false);
-                          setCitySearch("");
-                          setStockResults(null);
-                        }}
-                        className={`w-full text-left px-3 py-2 text-sm rounded hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors ${
-                          selectedRegion === r.region_ru
-                            ? "bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 font-medium"
-                            : "text-gray-700 dark:text-gray-300"
-                        }`}
+                        key={drug.id}
+                        onClick={() => handleAddDrug(drug)}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-purple-50 dark:hover:bg-purple-900/30 border-b border-gray-50 dark:border-gray-700/50 last:border-0 transition-colors"
                       >
-                        {language === "uz" ? r.region_uz || r.region_ru : r.region_ru}
+                        <DrugImage src={drug.imageUrl} size={44} />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                            {drug.name}
+                          </div>
+                          {drug.manufacturer && (
+                            <div className="text-xs text-gray-400 dark:text-gray-500 truncate">{drug.manufacturer}</div>
+                          )}
+                          {drug.brand && drug.brand !== drug.name && (
+                            <div className="text-xs text-gray-400 dark:text-gray-500 truncate">{drug.brand}</div>
+                          )}
+                        </div>
+                        {(drug.minPrice > 0 || drug.maxPrice > 0) && (
+                          <div className="text-xs text-purple-600 dark:text-purple-400 shrink-0 text-right font-medium">
+                            <div>от {formatPrice(drug.minPrice)}</div>
+                          </div>
+                        )}
                       </button>
                     ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Drug search input */}
-          <div className="flex gap-3 flex-wrap items-start">
-            <div className="relative flex-1 min-w-[280px]" ref={drugDropdownRef}>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder={
-                    canSearch
-                      ? "Введите название лекарства..."
-                      : "Сначала выберите регион"
-                  }
-                  value={drugQuery}
-                  onChange={(e) => setDrugQuery(e.target.value)}
-                  disabled={!canSearch}
-                  className={`pl-9 ${
-                    !canSearch
-                      ? "bg-gray-50 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
-                      : "bg-white dark:bg-gray-700"
-                  }`}
-                />
-                {isDrugSearching && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600" />
                   </div>
                 )}
               </div>
 
-              {/* Drug typeahead dropdown */}
-              {isDrugDropdownOpen && drugResults.length > 0 && (
-                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-xl max-h-72 overflow-y-auto">
-                  {drugResults.map((drug) => (
-                    <button
-                      key={drug.id}
-                      onClick={() => handleAddDrug(drug)}
-                      className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-purple-50 dark:hover:bg-purple-900/30 border-b border-gray-50 dark:border-gray-700 last:border-0 transition-colors group"
+              {/* Drug list */}
+              {drugList.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {drugList.map((item) => (
+                    <div
+                      key={item.drug.id}
+                      className="flex items-center gap-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 border border-gray-100 dark:border-gray-700"
                     >
-                      <div className="mt-0.5 w-7 h-7 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center shrink-0">
-                        <Pill className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                      </div>
+                      <DrugImage src={item.drug.imageUrl} size={40} />
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-purple-700 dark:group-hover:text-purple-300">
-                          {drug.name}
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                          {item.drug.name}
                         </div>
-                        {drug.manufacturer && (
+                        {item.drug.manufacturer && (
                           <div className="text-xs text-gray-400 dark:text-gray-500 truncate">
-                            {drug.manufacturer}
+                            {item.drug.manufacturer}
                           </div>
                         )}
                       </div>
-                      {(drug.minPrice > 0 || drug.maxPrice > 0) && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400 shrink-0 text-right">
-                          <div>от {formatPrice(drug.minPrice)}</div>
-                          {drug.maxPrice !== drug.minPrice && (
-                            <div>до {formatPrice(drug.maxPrice)}</div>
-                          )}
-                        </div>
-                      )}
-                    </button>
+                      {/* Quantity */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => handleQuantityChange(item.drug.id, -1)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center bg-purple-100 dark:bg-purple-900/40 hover:bg-purple-200 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 transition-colors"
+                        >
+                          <Minus className="h-3.5 w-3.5" />
+                        </button>
+                        <span className="w-7 text-center text-sm font-bold text-gray-800 dark:text-gray-200">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => handleQuantityChange(item.drug.id, 1)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center bg-purple-100 dark:bg-purple-900/40 hover:bg-purple-200 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 transition-colors"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveDrug(item.drug.id)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-400 dark:text-gray-500">
+                  <Pill className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">Список лекарств пуст</p>
+                  <p className="text-xs mt-0.5">Введите название и выберите из результатов</p>
                 </div>
               )}
             </div>
 
-            {/* Search in pharmacies button */}
+            {/* ── Search button ─────────────────────────────────────────── */}
             <Button
               onClick={handleStockSearch}
               disabled={!canSearch || drugList.length === 0 || isStockSearching}
-              className="bg-purple-600 hover:bg-purple-700 text-white gap-2 shrink-0"
+              className="h-12 text-base font-semibold rounded-xl bg-purple-600 hover:bg-purple-700 text-white gap-2 shadow-md shadow-purple-200 dark:shadow-purple-900/30"
             >
               {isStockSearching ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                  Поиск...
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Поиск в аптеках...
                 </>
               ) : (
                 <>
-                  <ShoppingBag className="h-4 w-4" />
+                  <ShoppingBag className="h-5 w-5" />
                   Найти в аптеках
+                  {drugList.length > 0 && (
+                    <span className="ml-1 bg-white/20 rounded-full px-2 py-0.5 text-xs">
+                      {drugList.length} поз.
+                    </span>
+                  )}
                 </>
               )}
             </Button>
           </div>
+        </main>
+      ) : (
+        // ════════════════════════════════════════════════════════════════
+        // STAGE 2 — Results
+        // ════════════════════════════════════════════════════════════════
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Results header bar */}
+          <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-3 flex items-center gap-4 shrink-0">
+            <button
+              onClick={handleBackToSearch}
+              className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Назад</span>
+            </button>
 
-          {/* Drug list */}
-          {drugList.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <div className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">
-                Список лекарств ({drugList.length})
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {drugList.map((item) => (
-                  <div
-                    key={item.drug.id}
-                    className="flex items-center gap-2 bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg px-3 py-1.5 text-sm"
-                  >
-                    <Pill className="h-3.5 w-3.5 text-purple-500 shrink-0" />
-                    <span className="text-gray-800 dark:text-gray-200 max-w-[200px] truncate">
-                      {item.drug.name}
-                    </span>
-                    {/* Quantity controls */}
-                    <div className="flex items-center gap-1 ml-1">
-                      <button
-                        onClick={() => handleQuantityChange(item.drug.id, -1)}
-                        className="w-5 h-5 rounded flex items-center justify-center bg-purple-200 dark:bg-purple-800 hover:bg-purple-300 dark:hover:bg-purple-700 text-purple-800 dark:text-purple-300 transition-colors"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </button>
-                      <span className="w-6 text-center text-xs font-semibold text-gray-700 dark:text-gray-300">
-                        {item.quantity}
-                      </span>
-                      <button
-                        onClick={() => handleQuantityChange(item.drug.id, 1)}
-                        className="w-5 h-5 rounded flex items-center justify-center bg-purple-200 dark:bg-purple-800 hover:bg-purple-300 dark:hover:bg-purple-700 text-purple-800 dark:text-purple-300 transition-colors"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => handleRemoveDrug(item.drug.id)}
-                      className="ml-1 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+            <div className="h-4 w-px bg-gray-200 dark:bg-gray-700" />
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
+                  {selectedParentRegion}{selectedRegion ? ` · ${selectedRegion}` : ""}
+                </span>
+                <div className="flex items-center gap-1 flex-wrap">
+                  {drugList.map((item) => (
+                    <span
+                      key={item.drug.id}
+                      className="inline-flex items-center gap-1 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full px-2 py-0.5"
                     >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ── Results section ────────────────────────────────────────────────── */}
-        <div className="flex-1 overflow-hidden relative">
-          {isStockSearching ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="flex flex-col items-center gap-3">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600" />
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Поиск лекарств в аптеках...
-                </span>
-              </div>
-            </div>
-          ) : stockResults === null ? (
-            <EmptyState canSearch={canSearch} drugListEmpty={drugList.length === 0} />
-          ) : stockResults.length === 0 ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center text-gray-400 dark:text-gray-500">
-                <Package className="h-12 w-12 mx-auto mb-3 opacity-40" />
-                <p className="text-sm font-medium">Аптеки не найдены</p>
-                <p className="text-xs mt-1 max-w-xs">
-                  Ни одна аптека не имеет все выбранные лекарства в данном регионе
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col h-full">
-              {/* View toggle — at the very top of results */}
-              <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-2.5 flex items-center justify-between shrink-0">
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Найдено аптек: <span className="font-semibold text-gray-800 dark:text-gray-200">{stockResults.length}</span>
-                </span>
-                <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                  <button
-                    onClick={() => setActiveView("list")}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors ${
-                      activeView === "list"
-                        ? "bg-purple-600 text-white"
-                        : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    }`}
-                  >
-                    <List className="h-4 w-4" />
-                    <span className="hidden sm:inline">Список</span>
-                  </button>
-                  <button
-                    onClick={() => setActiveView("map")}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors border-l border-gray-200 dark:border-gray-700 ${
-                      activeView === "map"
-                        ? "bg-purple-600 text-white"
-                        : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    }`}
-                  >
-                    <Map className="h-4 w-4" />
-                    <span className="hidden sm:inline">Карта</span>
-                  </button>
+                      <Pill className="h-2.5 w-2.5" />
+                      {item.drug.name.length > 20 ? item.drug.name.slice(0, 20) + "…" : item.drug.name}
+                      {item.quantity > 1 && <span className="font-bold">×{item.quantity}</span>}
+                    </span>
+                  ))}
                 </div>
               </div>
-
-              {/* Content */}
-              {activeView === "list" ? (
-                <ListResults
-                  pharmacies={stockResults}
-                  expandedPharmacy={expandedPharmacy}
-                  onToggleExpand={setExpandedPharmacy}
-                />
-              ) : (
-                <MapResults
-                  pharmacies={stockResults}
-                  mapContainerRef={mapContainerRef}
-                />
-              )}
             </div>
-          )}
+
+            <div className="text-sm text-gray-500 dark:text-gray-400 shrink-0">
+              <span className="font-semibold text-gray-800 dark:text-gray-200">{stockResults?.length ?? 0}</span> аптек
+            </div>
+
+            {/* View toggle */}
+            <div className="flex rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shrink-0">
+              <button
+                onClick={() => setActiveView("list")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors ${
+                  activeView === "list"
+                    ? "bg-purple-600 text-white"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                }`}
+              >
+                <List className="h-4 w-4" />
+                <span className="hidden sm:inline">Список</span>
+              </button>
+              <button
+                onClick={() => setActiveView("map")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors border-l border-gray-200 dark:border-gray-700 ${
+                  activeView === "map"
+                    ? "bg-purple-600 text-white"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                }`}
+              >
+                <Map className="h-4 w-4" />
+                <span className="hidden sm:inline">Карта</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Results content */}
+          <div className="flex-1 overflow-hidden">
+            {stockResults === null || stockResults.length === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center text-gray-400 dark:text-gray-500">
+                  <Package className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                  <p className="text-sm font-medium">Аптеки не найдены</p>
+                  <p className="text-xs mt-1">Ни одна аптека не имеет все выбранные лекарства</p>
+                </div>
+              </div>
+            ) : activeView === "list" ? (
+              <ListResults
+                pharmacies={stockResults}
+                expandedPharmacy={expandedPharmacy}
+                onToggleExpand={setExpandedPharmacy}
+              />
+            ) : (
+              <MapResults pharmacies={stockResults} mapContainerRef={mapContainerRef} />
+            )}
+          </div>
         </div>
-      </main>
-    </div>
-  );
-}
-
-// ─── Empty State ────────────────────────────────────────────────────────────────
-
-function EmptyState({ canSearch, drugListEmpty }: { canSearch: boolean; drugListEmpty: boolean }) {
-  return (
-    <div className="flex items-center justify-center h-full">
-      <div className="text-center text-gray-400 dark:text-gray-500 max-w-sm px-4">
-        <ShoppingBag className="h-14 w-14 mx-auto mb-4 opacity-30" />
-        {!canSearch ? (
-          <>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              Выберите регион
-            </p>
-            <p className="text-xs mt-1">
-              Для поиска лекарств необходимо выбрать регион
-            </p>
-          </>
-        ) : drugListEmpty ? (
-          <>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              Добавьте лекарства
-            </p>
-            <p className="text-xs mt-1">
-              Введите название лекарства в поиск и добавьте в список
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              Нажмите «Найти в аптеках»
-            </p>
-            <p className="text-xs mt-1">
-              Поиск по всем подключённым аптекам выбранного региона
-            </p>
-          </>
-        )}
-      </div>
+      )}
     </div>
   );
 }
@@ -746,124 +752,109 @@ function ListResults({
   onToggleExpand: (id: string | null) => void;
 }) {
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3">
-      {pharmacies.map((pharmacy, idx) => {
-        const isExpanded = expandedPharmacy === pharmacy.id;
-        return (
-          <div
-            key={pharmacy.id}
-            className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"
-          >
-            {/* Pharmacy header */}
-            <button
-              onClick={() => onToggleExpand(isExpanded ? null : pharmacy.id)}
-              className="w-full flex items-start gap-3 p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+    <div className="h-full overflow-y-auto p-4 sm:p-6">
+      <div className="max-w-3xl mx-auto space-y-3">
+        {pharmacies.map((pharmacy, idx) => {
+          const isExpanded = expandedPharmacy === pharmacy.id;
+          return (
+            <div
+              key={pharmacy.id}
+              className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"
             >
-              {/* Rank */}
-              <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center shrink-0">
-                <span className="text-xs font-bold text-purple-700 dark:text-purple-300">{idx + 1}</span>
-              </div>
+              <button
+                onClick={() => onToggleExpand(isExpanded ? null : pharmacy.id)}
+                className="w-full flex items-start gap-4 p-4 text-left hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors"
+              >
+                {/* Rank + image */}
+                <div className="relative shrink-0">
+                  <PharmacyImage src={pharmacy.imageUrl} size={56} />
+                  <span className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-purple-600 text-white text-xs font-bold flex items-center justify-center shadow">
+                    {idx + 1}
+                  </span>
+                </div>
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">
-                      {pharmacy.name}
-                    </div>
-                    {pharmacy.address && (
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <MapPin className="h-3 w-3 text-gray-400 shrink-0" />
-                        <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          {pharmacy.address}
-                        </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm leading-tight">
+                        {pharmacy.name}
                       </div>
-                    )}
-                    <div className="flex items-center gap-3 mt-1 flex-wrap">
-                      {pharmacy.phone && (
-                        <a
-                          href={`tel:${pharmacy.phone}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 hover:underline"
-                        >
-                          <Phone className="h-3 w-3" /> {pharmacy.phone}
-                        </a>
+                      {pharmacy.address && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <MapPin className="h-3 w-3 text-gray-400 shrink-0" />
+                          <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{pharmacy.address}</span>
+                        </div>
                       )}
-                      {pharmacy.openTime && pharmacy.closeTime && (
-                        <span className="flex items-center gap-1 text-xs text-gray-400">
-                          <Clock className="h-3 w-3" />
-                          {pharmacy.openTime.slice(0, 5)} – {pharmacy.closeTime.slice(0, 5)}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                        {pharmacy.phone && (
+                          <a
+                            href={`tel:${pharmacy.phone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 hover:underline"
+                          >
+                            <Phone className="h-3 w-3" />
+                            {pharmacy.phone}
+                          </a>
+                        )}
+                        {pharmacy.openTime && pharmacy.closeTime && (
+                          <span className="flex items-center gap-1 text-xs text-gray-400">
+                            <Clock className="h-3 w-3" />
+                            {pharmacy.openTime.slice(0, 5)} – {pharmacy.closeTime.slice(0, 5)}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="shrink-0 text-right">
-                    <div className="text-base font-bold text-purple-700 dark:text-purple-400">
-                      {formatPrice(pharmacy.totalAmount)}
-                    </div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500">
-                      {pharmacy.products.length} поз.
+                    <div className="shrink-0 text-right">
+                      <div className="text-base font-bold text-purple-700 dark:text-purple-400">
+                        {formatPrice(pharmacy.totalAmount)}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-0.5">{pharmacy.products.length} поз.</div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <Expand
-                className={`h-4 w-4 text-gray-400 shrink-0 mt-1 transition-transform ${isExpanded ? "rotate-180" : ""}`}
-              />
-            </button>
+                <Expand className={`h-4 w-4 text-gray-400 shrink-0 mt-1 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+              </button>
 
-            {/* Expanded drug details */}
-            {isExpanded && (
-              <div className="border-t border-gray-100 dark:border-gray-700">
-                <div className="divide-y divide-gray-50 dark:divide-gray-700">
-                  {pharmacy.products.map((product) => (
-                    <div
-                      key={product.id}
-                      className="flex items-center justify-between gap-3 px-4 py-3"
-                    >
-                      <div className="flex items-start gap-2 min-w-0">
-                        <Pill className="h-4 w-4 text-purple-400 shrink-0 mt-0.5" />
-                        <div className="min-w-0">
-                          <div className="text-sm text-gray-800 dark:text-gray-200 font-medium truncate">
-                            {product.name}
-                          </div>
+              {isExpanded && (
+                <div className="border-t border-gray-100 dark:border-gray-700">
+                  <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                    {pharmacy.products.map((product) => (
+                      <div key={product.id} className="flex items-center gap-3 px-4 py-3">
+                        <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center shrink-0">
+                          <Pill className="h-4 w-4 text-purple-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{product.name}</div>
                           {product.manufacturer && (
-                            <div className="text-xs text-gray-400 dark:text-gray-500 truncate">
-                              {product.manufacturer}
-                            </div>
+                            <div className="text-xs text-gray-400 truncate">{product.manufacturer}</div>
                           )}
-                          {product.expiration && (
-                            <div className="text-xs text-gray-400 dark:text-gray-500">
-                              Годен до: {product.expiration}
-                            </div>
-                          )}
-                          <div className="text-xs text-gray-400 dark:text-gray-500">
-                            В наличии: {product.stock} шт.
+                          <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                            {product.expiration && (
+                              <span className="text-xs text-gray-400">Годен до: {product.expiration}</span>
+                            )}
+                            <span className="text-xs text-gray-400">В наличии: {product.stock} шт.</span>
                           </div>
                         </div>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                          {formatPrice(product.price)}
-                        </div>
-                        <div className="text-xs text-gray-400">
-                          × {product.quantity} = {formatPrice(product.total)}
+                        <div className="shrink-0 text-right">
+                          <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">{formatPrice(product.price)}</div>
+                          <div className="text-xs text-gray-400">× {product.quantity} = {formatPrice(product.total)}</div>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-end px-4 py-2.5 bg-purple-50 dark:bg-purple-900/20">
+                    <div className="text-sm font-bold text-purple-700 dark:text-purple-300">
+                      Итого: {formatPrice(pharmacy.totalAmount)}
                     </div>
-                  ))}
-                </div>
-                <div className="flex justify-end px-4 py-2.5 bg-purple-50 dark:bg-purple-900/20 border-t border-purple-100 dark:border-purple-900/30">
-                  <div className="text-sm font-bold text-purple-700 dark:text-purple-300">
-                    Итого: {formatPrice(pharmacy.totalAmount)}
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -882,37 +873,30 @@ function MapResults({
   return (
     <div className="flex h-full w-full relative">
       {/* Sidebar */}
-      <div className="w-64 shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col overflow-y-auto z-10">
-        <div className="p-3 border-b border-gray-100 dark:border-gray-700">
-          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-            На карте
-          </div>
+      <div className="w-64 shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col overflow-hidden z-10">
+        <div className="p-3 border-b border-gray-100 dark:border-gray-700 shrink-0">
+          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">На карте</div>
           <div className="text-lg font-bold text-gray-800 dark:text-gray-200 mt-0.5">
             {withCoords.length}
             <span className="text-xs font-normal text-gray-400 ml-1">из {pharmacies.length} аптек</span>
           </div>
           {withCoords.length < pharmacies.length && (
-            <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-              {pharmacies.length - withCoords.length} аптек без координат
+            <div className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+              {pharmacies.length - withCoords.length} без координат
             </div>
           )}
         </div>
-        <div className="flex-1 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-700">
+        <div className="flex-1 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-700/50">
           {pharmacies.map((p, idx) => (
-            <div key={p.id} className="px-3 py-2.5">
-              <div className="flex items-start gap-2">
-                <span className="text-xs text-gray-400 font-mono shrink-0 mt-0.5">{idx + 1}</span>
-                <div className="min-w-0">
-                  <div className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">
-                    {p.name}
-                  </div>
-                  <div className="text-xs text-purple-600 dark:text-purple-400 font-semibold">
-                    {formatPrice(p.totalAmount)}
-                  </div>
-                  {!p.latitude && !p.longitude && (
-                    <div className="text-xs text-gray-400 italic">нет координат</div>
-                  )}
-                </div>
+            <div key={p.id} className="flex items-center gap-2.5 px-3 py-2.5">
+              <span className="text-xs text-gray-400 font-mono shrink-0 w-5 text-center">{idx + 1}</span>
+              <PharmacyImage src={p.imageUrl} size={32} />
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{p.name}</div>
+                <div className="text-xs text-purple-600 dark:text-purple-400 font-semibold">{formatPrice(p.totalAmount)}</div>
+                {!p.latitude && !p.longitude && (
+                  <div className="text-xs text-gray-400 italic">нет координат</div>
+                )}
               </div>
             </div>
           ))}
@@ -920,13 +904,13 @@ function MapResults({
       </div>
 
       {/* Map */}
-      <div className="flex-1 relative h-full z-0 bg-gray-100 dark:bg-gray-900">
+      <div className="flex-1 relative h-full z-0">
         <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" />
         {withCoords.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-            <div className="text-center text-gray-400 dark:text-gray-500">
+            <div className="text-center text-gray-400">
               <MapPin className="h-10 w-10 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Нет координат для отображения на карте</p>
+              <p className="text-sm">Нет координат для отображения</p>
             </div>
           </div>
         )}

@@ -32,6 +32,7 @@ export interface StockPharmacy {
   id: string;
   slug: string;
   name: string;
+  imageUrl: string | null;
   address: string | null;
   landmark: string | null;
   regionName: string | null;
