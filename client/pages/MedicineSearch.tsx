@@ -1223,7 +1223,7 @@ function ListResults({
             >
               <button
                 onClick={() => onToggleExpand(isExpanded ? null : pharmacy.id)}
-                className="w-full flex items-center gap-5 p-5 text-left hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors"
+                className="w-full flex items-center justify-between gap-4 p-5 text-left hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors"
               >
                 {/* Rank + image */}
                 <div className="relative shrink-0">
@@ -1234,7 +1234,7 @@ function ListResults({
                 </div>
 
                 {/* Name + address */}
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0">
                   <div className="font-semibold text-gray-900 dark:text-gray-100 text-base leading-tight">
                     {pharmacy.name}
                   </div>
