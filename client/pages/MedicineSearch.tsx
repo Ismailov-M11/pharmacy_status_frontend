@@ -558,9 +558,9 @@ export default function MedicineSearch() {
                     </div>
 
                     {/* Price + prescription chips */}
-                    <div className="flex flex-wrap gap-3">
+                    <div className="grid grid-cols-2 gap-2">
                       {(drugDetailModal.minPrice || drugDetailModal.maxPrice) && (
-                        <div className="bg-green-50 dark:bg-green-900/20 rounded-xl px-4 py-2.5">
+                        <div className="bg-green-50 dark:bg-green-900/20 rounded-xl px-3 py-2.5">
                           <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Цена</div>
                           <div className="text-sm font-semibold text-green-700 dark:text-green-400">
                             {drugDetailModal.minPrice === drugDetailModal.maxPrice
@@ -570,7 +570,7 @@ export default function MedicineSearch() {
                         </div>
                       )}
                       {drugDetailModal.byPrescription !== undefined && drugDetailModal.byPrescription !== null && (
-                        <div className={`rounded-xl px-4 py-2.5 ${drugDetailModal.byPrescription ? "bg-red-50 dark:bg-red-900/20" : "bg-blue-50 dark:bg-blue-900/20"}`}>
+                        <div className={`rounded-xl px-3 py-2.5 ${drugDetailModal.byPrescription ? "bg-red-50 dark:bg-red-900/20" : "bg-blue-50 dark:bg-blue-900/20"}`}>
                           <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Рецепт</div>
                           <div className={`text-sm font-semibold ${drugDetailModal.byPrescription ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400"}`}>
                             {drugDetailModal.byPrescription ? "Требуется" : "Не требуется"}
@@ -578,7 +578,7 @@ export default function MedicineSearch() {
                         </div>
                       )}
                       {drugDetailModal.atcName && (
-                        <div className="bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-2.5">
+                        <div className="col-span-2 bg-gray-50 dark:bg-gray-800 rounded-xl px-3 py-2.5">
                           <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Действующее вещество</div>
                           <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{drugDetailModal.atcName}</div>
                         </div>
