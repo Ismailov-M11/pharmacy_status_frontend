@@ -1233,39 +1233,40 @@ function ListResults({
                   </span>
                 </div>
 
-                {/* Main info */}
-                <div className="flex-1 min-w-0">
+                {/* Name + address */}
+                <div className="min-w-0 w-56 shrink-0">
                   <div className="font-semibold text-gray-900 dark:text-gray-100 text-base leading-tight">
                     {pharmacy.name}
                   </div>
                   {pharmacy.address && (
                     <div className="flex items-center gap-1 mt-1">
                       <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-                      <span className="text-sm text-gray-500 dark:text-gray-400 truncate">{pharmacy.address}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">{pharmacy.address}</span>
                     </div>
                   )}
-                  {/* Badges row */}
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    {pharmacy.phone && (
-                      <a
-                        href={`tel:${pharmacy.phone}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm font-medium hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors"
-                      >
-                        <Phone className="h-3.5 w-3.5" />
-                        {pharmacy.phone}
-                      </a>
-                    )}
-                    {pharmacy.openTime && pharmacy.closeTime && (
-                      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm">
-                        <Clock className="h-3.5 w-3.5" />
-                        {pharmacy.openTime.slice(0, 5)} – {pharmacy.closeTime.slice(0, 5)}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-sm font-medium">
-                      {pharmacy.products.length} поз.
+                </div>
+
+                {/* Badges */}
+                <div className="flex-1 flex items-center gap-2 flex-wrap">
+                  {pharmacy.phone && (
+                    <a
+                      href={`tel:${pharmacy.phone}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm font-medium hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors"
+                    >
+                      <Phone className="h-3.5 w-3.5" />
+                      {pharmacy.phone}
+                    </a>
+                  )}
+                  {pharmacy.openTime && pharmacy.closeTime && (
+                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm">
+                      <Clock className="h-3.5 w-3.5" />
+                      {pharmacy.openTime.slice(0, 5)} – {pharmacy.closeTime.slice(0, 5)}
                     </span>
-                  </div>
+                  )}
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-sm font-medium">
+                    {pharmacy.products.length} поз.
+                  </span>
                 </div>
 
                 {/* Price + expand */}
