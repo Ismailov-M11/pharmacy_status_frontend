@@ -126,6 +126,9 @@ export interface OrderResult {
   status: string;
   customerPhone: string | null;
   marketName: string | null;
+  marketSlug: string | null;
+  parentRegionRu: string | null;
+  regionRu: string | null;
   creationDate: string;
   items: OrderItem[];
 }

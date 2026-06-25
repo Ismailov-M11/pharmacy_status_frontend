@@ -138,6 +138,7 @@ export default function MedicineSearch() {
   const [isOrderSearching, setIsOrderSearching] = useState(false);
   const [isOrderDropdownOpen, setIsOrderDropdownOpen] = useState(false);
   const [selectedOrderCode, setSelectedOrderCode] = useState<string | null>(null);
+  const pendingAutoRegion = useRef<string | null>(null);
   const orderDropdownRef = useRef<HTMLDivElement>(null);
   const orderSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -172,12 +173,21 @@ export default function MedicineSearch() {
     if (!token || selectedParentRegions.length === 0) {
       setFilterOptions((prev) => ({ ...prev, regions: [] }));
       setSelectedRegions([]);
+      pendingAutoRegion.current = null;
       return;
     }
     getMedicineFilterOptions(token, selectedParentRegions.join(","))
-      .then((opts) => setFilterOptions((prev) => ({ ...prev, regions: opts.regions })))
+      .then((opts) => {
+        setFilterOptions((prev) => ({ ...prev, regions: opts.regions }));
+        if (pendingAutoRegion.current) {
+          const match = opts.regions.find((r) => r.region_ru === pendingAutoRegion.current);
+          setSelectedRegions(match ? [match.region_ru] : []);
+          pendingAutoRegion.current = null;
+        } else {
+          setSelectedRegions([]);
+        }
+      })
       .catch(() => {});
-    setSelectedRegions([]);
   }, [token, selectedParentRegions.join(",")]);
 
   // ── Close dropdowns on outside click ──────────────────────────────────────
@@ -277,6 +287,8 @@ export default function MedicineSearch() {
     setSelectedOrderCode(order.code);
     setOrderQuery(order.code);
     setIsOrderDropdownOpen(false);
+
+    // Auto-fill drug list
     const items: DrugListItem[] = order.items.map((item) => ({
       drug: {
         id: item.slug,
@@ -291,6 +303,13 @@ export default function MedicineSearch() {
       quantity: item.quantity,
     }));
     setDrugList(items);
+
+    // Auto-fill region/city from market slug → oson_pharmacies
+    if (order.parentRegionRu) {
+      pendingAutoRegion.current = order.regionRu || null;
+      setSelectedParentRegions([order.parentRegionRu]);
+    }
+
     toast.success(`Заказ ${order.code}: добавлено ${items.length} поз.`);
   };
 
@@ -530,6 +549,7 @@ export default function MedicineSearch() {
                               </div>
                               <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                 {order.marketName && <span>{order.marketName} · </span>}
+                                {order.parentRegionRu && <span className="text-purple-500 dark:text-purple-400">{order.parentRegionRu}{order.regionRu ? ` / ${order.regionRu}` : ""} · </span>}
                                 {order.customerPhone && <span>{order.customerPhone} · </span>}
                                 <span>{order.items.length} поз.</span>
                               </div>
