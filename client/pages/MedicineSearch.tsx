@@ -554,48 +554,63 @@ export default function MedicineSearch() {
                     )}
                   </div>
 
-                  {/* Quick facts */}
-                  <div className="grid grid-cols-2 gap-3 py-4 border-b border-gray-100 dark:border-gray-800">
-                    {(drugDetailModal.minPrice || drugDetailModal.maxPrice) && (
-                      <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-3">
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Цена</div>
-                        <div className="text-sm font-semibold text-green-700 dark:text-green-400">
-                          {drugDetailModal.minPrice === drugDetailModal.maxPrice
-                            ? `${(drugDetailModal.minPrice || 0).toLocaleString("ru-RU")} сум`
-                            : `${(drugDetailModal.minPrice || 0).toLocaleString("ru-RU")} – ${(drugDetailModal.maxPrice || 0).toLocaleString("ru-RU")} сум`}
+                  {/* Quick facts — only show chips that have real data */}
+                  {(() => {
+                    const chips = [
+                      (drugDetailModal.minPrice || drugDetailModal.maxPrice) && (
+                        <div key="price" className="bg-green-50 dark:bg-green-900/20 rounded-xl p-3">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Цена</div>
+                          <div className="text-sm font-semibold text-green-700 dark:text-green-400">
+                            {drugDetailModal.minPrice === drugDetailModal.maxPrice
+                              ? `${(drugDetailModal.minPrice || 0).toLocaleString("ru-RU")} сум`
+                              : `${(drugDetailModal.minPrice || 0).toLocaleString("ru-RU")} – ${(drugDetailModal.maxPrice || 0).toLocaleString("ru-RU")} сум`}
+                          </div>
                         </div>
+                      ),
+                      drugDetailModal.byPrescription !== undefined && drugDetailModal.byPrescription !== null && (
+                        <div key="rx" className={`rounded-xl p-3 ${drugDetailModal.byPrescription ? "bg-red-50 dark:bg-red-900/20" : "bg-blue-50 dark:bg-blue-900/20"}`}>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Рецепт</div>
+                          <div className={`text-sm font-semibold ${drugDetailModal.byPrescription ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400"}`}>
+                            {drugDetailModal.byPrescription ? "Требуется" : "Не требуется"}
+                          </div>
+                        </div>
+                      ),
+                      drugDetailModal.atcName && (
+                        <div key="atc" className="col-span-2 bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Действующее вещество</div>
+                          <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{drugDetailModal.atcName}</div>
+                        </div>
+                      ),
+                    ].filter(Boolean);
+                    return chips.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-3 py-4 border-b border-gray-100 dark:border-gray-800">
+                        {chips}
                       </div>
-                    )}
-                    <div className={`rounded-xl p-3 ${drugDetailModal.byPrescription ? "bg-red-50 dark:bg-red-900/20" : "bg-blue-50 dark:bg-blue-900/20"}`}>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Рецепт</div>
-                      <div className={`text-sm font-semibold ${drugDetailModal.byPrescription ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400"}`}>
-                        {drugDetailModal.byPrescription ? "Требуется" : "Не требуется"}
-                      </div>
-                    </div>
-                    {drugDetailModal.atcName && (
-                      <div className="col-span-2 bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Действующее вещество</div>
-                        <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{drugDetailModal.atcName}</div>
-                      </div>
-                    )}
-                  </div>
+                    ) : null;
+                  })()}
 
-                  {/* Instructions */}
-                  {drugDetailModal.instructions.length > 0 && (
-                    <div className="py-4 flex flex-col gap-4">
-                      {drugDetailModal.instructions.map((instr) => (
-                        <div key={instr.order}>
-                          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">
-                            {instr.title}
-                          </h3>
-                          <div
-                            className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed prose-sm max-w-none [&_p]:mb-2 [&_br]:block"
-                            dangerouslySetInnerHTML={{ __html: instr.description }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {/* Instructions — only sections with non-empty content */}
+                  {(() => {
+                    const validInstrs = drugDetailModal.instructions.filter((i) => {
+                      const stripped = i.description.replace(/<[^>]*>/g, "").trim();
+                      return i.title && stripped.length > 0;
+                    });
+                    return validInstrs.length > 0 ? (
+                      <div className="py-4 flex flex-col gap-5">
+                        {validInstrs.map((instr) => (
+                          <div key={instr.order}>
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">
+                              {instr.title}
+                            </h3>
+                            <div
+                              className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed [&_p]:mb-2 [&_p:last-child]:mb-0 [&_.panel]:hidden"
+                              dangerouslySetInnerHTML={{ __html: instr.description }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
               </>
             )}
