@@ -21,7 +21,6 @@ import {
   Pill,
   ShoppingBag,
   ChevronDown as Expand,
-  FilterX,
   ArrowLeft,
   Building2,
   Loader2,
@@ -111,8 +110,8 @@ export default function MedicineSearch() {
     parentRegions: [],
     regions: [],
   });
-  const [selectedParentRegion, setSelectedParentRegion] = useState<string>("");
-  const [selectedRegion, setSelectedRegion] = useState<string>("");
+  const [selectedParentRegions, setSelectedParentRegions] = useState<string[]>([]);
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
   const [regionSearch, setRegionSearch] = useState("");
@@ -157,12 +156,16 @@ export default function MedicineSearch() {
   }, [token]);
 
   useEffect(() => {
-    if (!token || !selectedParentRegion) return;
-    getMedicineFilterOptions(token, selectedParentRegion)
+    if (!token || selectedParentRegions.length === 0) {
+      setFilterOptions((prev) => ({ ...prev, regions: [] }));
+      setSelectedRegions([]);
+      return;
+    }
+    getMedicineFilterOptions(token, selectedParentRegions.join(","))
       .then((opts) => setFilterOptions((prev) => ({ ...prev, regions: opts.regions })))
       .catch(() => {});
-    setSelectedRegion("");
-  }, [token, selectedParentRegion]);
+    setSelectedRegions([]);
+  }, [token, selectedParentRegions.join(",")]);
 
   // ── Close dropdowns on outside click ──────────────────────────────────────
   useEffect(() => {
@@ -232,7 +235,7 @@ export default function MedicineSearch() {
 
   // ── Stock search ───────────────────────────────────────────────────────────
   const handleStockSearch = async () => {
-    if (!token || drugList.length === 0 || !selectedParentRegion) return;
+    if (!token || drugList.length === 0 || selectedParentRegions.length === 0) return;
     setIsStockSearching(true);
     setStockResults(null);
     setExpandedPharmacy(null);
@@ -246,7 +249,12 @@ export default function MedicineSearch() {
         manufacturer: item.drug.manufacturer,
         quantity: item.quantity,
       }));
-      const res = await searchStock(token, drugs, selectedParentRegion, selectedRegion || undefined);
+      const res = await searchStock(
+        token,
+        drugs,
+        selectedParentRegions.join(","),
+        selectedRegions.length > 0 ? selectedRegions.join(",") : undefined
+      );
       setStockResults(res.pharmacies);
       setStage("results");
       setActiveView("list");
@@ -367,13 +375,25 @@ export default function MedicineSearch() {
     );
   }
 
-  const canSearch = !!selectedParentRegion;
+  const canSearch = selectedParentRegions.length > 0;
   const filteredParentRegions = filterOptions.parentRegions.filter((r) =>
     r.parent_region_ru.toLowerCase().includes(regionSearch.toLowerCase())
   );
   const filteredRegions = filterOptions.regions.filter((r) =>
     r.region_ru.toLowerCase().includes(citySearch.toLowerCase())
   );
+
+  const toggleParentRegion = (name: string) => {
+    setSelectedParentRegions((prev) =>
+      prev.includes(name) ? prev.filter((r) => r !== name) : [...prev, name]
+    );
+  };
+
+  const toggleRegion = (name: string) => {
+    setSelectedRegions((prev) =>
+      prev.includes(name) ? prev.filter((r) => r !== name) : [...prev, name]
+    );
+  };
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
@@ -402,25 +422,41 @@ export default function MedicineSearch() {
               </div>
 
               <div className="flex flex-wrap gap-3">
-                {/* Регион */}
+                {/* Регион — multi-select */}
                 <div className="relative flex-1 min-w-[180px]" ref={regionDropdownRef}>
                   <button
                     onClick={() => setIsRegionDropdownOpen(!isRegionDropdownOpen)}
                     className={`w-full flex items-center justify-between px-4 py-2.5 text-sm rounded-xl border-2 transition-all ${
-                      selectedParentRegion
+                      selectedParentRegions.length > 0
                         ? "border-purple-400 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300 font-medium"
                         : "border-dashed border-red-300 dark:border-red-700 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400"
                     } hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none`}
                   >
                     <span className="truncate">
-                      {selectedParentRegion || <span className="text-red-400">* Регион (обязательно)</span>}
+                      {selectedParentRegions.length === 0 ? (
+                        <span className="text-red-400">* Регион (обязательно)</span>
+                      ) : selectedParentRegions.length === 1 ? (
+                        selectedParentRegions[0]
+                      ) : (
+                        `${selectedParentRegions.length} региона выбрано`
+                      )}
                     </span>
-                    <ChevronDown className="h-4 w-4 text-gray-400 shrink-0 ml-2" />
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                      {selectedParentRegions.length > 0 && (
+                        <span
+                          onClick={(e) => { e.stopPropagation(); setSelectedParentRegions([]); }}
+                          className="p-0.5 rounded hover:bg-purple-200 dark:hover:bg-purple-800"
+                        >
+                          <X className="h-3 w-3 text-purple-500" />
+                        </span>
+                      )}
+                      <ChevronDown className="h-4 w-4 text-gray-400" />
+                    </div>
                   </button>
                   {isRegionDropdownOpen && (
                     <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg">
-                      <div className="p-2 border-b border-gray-100 dark:border-gray-700">
-                        <div className="relative">
+                      <div className="p-2 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2">
+                        <div className="relative flex-1">
                           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
                           <input
                             type="text"
@@ -431,62 +467,85 @@ export default function MedicineSearch() {
                             autoFocus
                           />
                         </div>
+                        {filteredParentRegions.length > 0 && (
+                          <button
+                            onClick={() => {
+                              const allVisible = filteredParentRegions.map((r) => r.parent_region_ru);
+                              const allSelected = allVisible.every((n) => selectedParentRegions.includes(n));
+                              setSelectedParentRegions(allSelected
+                                ? selectedParentRegions.filter((n) => !allVisible.includes(n))
+                                : [...new Set([...selectedParentRegions, ...allVisible])]
+                              );
+                            }}
+                            className="text-xs text-purple-600 dark:text-purple-400 hover:underline shrink-0"
+                          >
+                            {filteredParentRegions.every((r) => selectedParentRegions.includes(r.parent_region_ru)) ? "Снять" : "Все"}
+                          </button>
+                        )}
                       </div>
                       <div className="max-h-52 overflow-y-auto p-1">
                         {filteredParentRegions.length === 0 ? (
                           <div className="px-3 py-2 text-sm text-gray-400 text-center">Ничего не найдено</div>
-                        ) : filteredParentRegions.map((r) => (
-                          <button
-                            key={r.parent_region_ru}
-                            onClick={() => {
-                              setSelectedParentRegion(r.parent_region_ru);
-                              setIsRegionDropdownOpen(false);
-                              setRegionSearch("");
-                            }}
-                            className={`w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors ${
-                              selectedParentRegion === r.parent_region_ru
-                                ? "bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 font-medium"
-                                : "text-gray-700 dark:text-gray-300"
-                            }`}
-                          >
-                            {language === "uz" ? r.parent_region_uz || r.parent_region_ru : r.parent_region_ru}
-                          </button>
-                        ))}
+                        ) : filteredParentRegions.map((r) => {
+                          const checked = selectedParentRegions.includes(r.parent_region_ru);
+                          return (
+                            <button
+                              key={r.parent_region_ru}
+                              onClick={() => toggleParentRegion(r.parent_region_ru)}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors ${
+                                checked ? "text-purple-800 dark:text-purple-300" : "text-gray-700 dark:text-gray-300"
+                              }`}
+                            >
+                              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                                checked ? "bg-purple-600 border-purple-600" : "border-gray-300 dark:border-gray-600"
+                              }`}>
+                                {checked && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 8"><path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                              </div>
+                              {language === "uz" ? r.parent_region_uz || r.parent_region_ru : r.parent_region_ru}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Город/Район */}
+                {/* Город/Район — multi-select */}
                 <div className="relative flex-1 min-w-[180px]" ref={cityDropdownRef}>
                   <button
-                    disabled={!selectedParentRegion}
+                    disabled={selectedParentRegions.length === 0}
                     onClick={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
                     className={`w-full flex items-center justify-between px-4 py-2.5 text-sm rounded-xl border-2 transition-all ${
-                      !selectedParentRegion
+                      selectedParentRegions.length === 0
                         ? "border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
-                        : selectedRegion
+                        : selectedRegions.length > 0
                         ? "border-purple-400 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300 font-medium"
                         : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600"
                     } focus:outline-none`}
                   >
-                    <span className="truncate">{selectedRegion || "Район (опционально)"}</span>
+                    <span className="truncate">
+                      {selectedRegions.length === 0
+                        ? "Район (опционально)"
+                        : selectedRegions.length === 1
+                        ? selectedRegions[0]
+                        : `${selectedRegions.length} района выбрано`}
+                    </span>
                     <div className="flex items-center gap-1 shrink-0 ml-2">
-                      {selectedRegion && (
+                      {selectedRegions.length > 0 && (
                         <span
-                          onClick={(e) => { e.stopPropagation(); setSelectedRegion(""); }}
+                          onClick={(e) => { e.stopPropagation(); setSelectedRegions([]); }}
                           className="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
                         >
-                          <FilterX className="h-3 w-3 text-gray-400" />
+                          <X className="h-3 w-3 text-gray-400" />
                         </span>
                       )}
                       <ChevronDown className="h-4 w-4 text-gray-400" />
                     </div>
                   </button>
-                  {isCityDropdownOpen && selectedParentRegion && (
+                  {isCityDropdownOpen && selectedParentRegions.length > 0 && (
                     <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg">
-                      <div className="p-2 border-b border-gray-100 dark:border-gray-700">
-                        <div className="relative">
+                      <div className="p-2 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2">
+                        <div className="relative flex-1">
                           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
                           <input
                             type="text"
@@ -497,27 +556,44 @@ export default function MedicineSearch() {
                             autoFocus
                           />
                         </div>
+                        {filteredRegions.length > 0 && (
+                          <button
+                            onClick={() => {
+                              const allVisible = filteredRegions.map((r) => r.region_ru);
+                              const allSelected = allVisible.every((n) => selectedRegions.includes(n));
+                              setSelectedRegions(allSelected
+                                ? selectedRegions.filter((n) => !allVisible.includes(n))
+                                : [...new Set([...selectedRegions, ...allVisible])]
+                              );
+                            }}
+                            className="text-xs text-purple-600 dark:text-purple-400 hover:underline shrink-0"
+                          >
+                            {filteredRegions.every((r) => selectedRegions.includes(r.region_ru)) ? "Снять" : "Все"}
+                          </button>
+                        )}
                       </div>
                       <div className="max-h-52 overflow-y-auto p-1">
                         {filteredRegions.length === 0 ? (
                           <div className="px-3 py-2 text-sm text-gray-400 text-center">Ничего не найдено</div>
-                        ) : filteredRegions.map((r) => (
-                          <button
-                            key={r.region_ru}
-                            onClick={() => {
-                              setSelectedRegion(r.region_ru);
-                              setIsCityDropdownOpen(false);
-                              setCitySearch("");
-                            }}
-                            className={`w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors ${
-                              selectedRegion === r.region_ru
-                                ? "bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 font-medium"
-                                : "text-gray-700 dark:text-gray-300"
-                            }`}
-                          >
-                            {language === "uz" ? r.region_uz || r.region_ru : r.region_ru}
-                          </button>
-                        ))}
+                        ) : filteredRegions.map((r) => {
+                          const checked = selectedRegions.includes(r.region_ru);
+                          return (
+                            <button
+                              key={r.region_ru}
+                              onClick={() => toggleRegion(r.region_ru)}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors ${
+                                checked ? "text-purple-800 dark:text-purple-300" : "text-gray-700 dark:text-gray-300"
+                              }`}
+                            >
+                              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                                checked ? "bg-purple-600 border-purple-600" : "border-gray-300 dark:border-gray-600"
+                              }`}>
+                                {checked && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 8"><path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                              </div>
+                              {language === "uz" ? r.region_uz || r.region_ru : r.region_ru}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -682,7 +758,7 @@ export default function MedicineSearch() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
-                  {selectedParentRegion}{selectedRegion ? ` · ${selectedRegion}` : ""}
+                  {selectedParentRegions.join(", ")}{selectedRegions.length > 0 ? ` · ${selectedRegions.join(", ")}` : ""}
                 </span>
                 <div className="flex items-center gap-1 flex-wrap">
                   {drugList.map((item) => (
