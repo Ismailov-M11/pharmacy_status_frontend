@@ -18,6 +18,7 @@ import PharmaciesActivity from "./pages/PharmaciesActivity";
 import NewPharmacies from "./pages/NewPharmacies";
 import DeliveryAnalytics from "./pages/DeliveryAnalytics";
 import OsonList from "./pages/OsonList";
+import MedicineSearch from "./pages/MedicineSearch";
 import NotificationCenter from "./pages/NotificationCenter";
 import UserCarts from "./pages/UserCarts";
 import NotFound from "./pages/NotFound";
@@ -167,6 +168,14 @@ const App = () => (
                   element={
                     <RoleBasedRoute allowedRoles={["ROLE_ADMIN", "ROLE_AGENT", "ROLE_OPERATOR"]}>
                       <UserCarts />
+                    </RoleBasedRoute>
+                  }
+                />
+                <Route
+                  path="/medicine-search"
+                  element={
+                    <RoleBasedRoute allowedRoles={["ROLE_ADMIN", "ROLE_AGENT", "ROLE_OPERATOR"]}>
+                      <MedicineSearch />
                     </RoleBasedRoute>
                   }
                 />

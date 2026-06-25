@@ -20,6 +20,7 @@ import {
   Bell,
   ChevronRight,
   X,
+  Pill,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -139,6 +140,16 @@ export function Header() {
         colorActiveBorder: "border-amber-500",
       },
       {
+        label: "Справочник лекарств",
+        path: "/medicine-search",
+        icon: Pill,
+        description: "Поиск лекарств в аптеках",
+        colorBg: "bg-green-100 dark:bg-green-900/40",
+        colorIcon: "text-green-600 dark:text-green-400",
+        colorActive: "bg-green-50 dark:bg-green-900/20",
+        colorActiveBorder: "border-green-500",
+      },
+      {
         label: t.userCarts || "Корзины пользователей",
         path: "/user-carts",
         icon: ShoppingCart,
@@ -225,6 +236,16 @@ export function Header() {
         colorIcon: "text-amber-600 dark:text-amber-400",
         colorActive: "bg-amber-50 dark:bg-amber-900/20",
         colorActiveBorder: "border-amber-500",
+      },
+      {
+        label: "Справочник лекарств",
+        path: "/medicine-search",
+        icon: Pill,
+        description: "Поиск лекарств в аптеках",
+        colorBg: "bg-green-100 dark:bg-green-900/40",
+        colorIcon: "text-green-600 dark:text-green-400",
+        colorActive: "bg-green-50 dark:bg-green-900/20",
+        colorActiveBorder: "border-green-500",
       },
       {
         label: t.userCarts || "Корзины пользователей",
