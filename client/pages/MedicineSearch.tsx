@@ -142,6 +142,8 @@ export default function MedicineSearch() {
   const mapRef = useRef<any>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInitialized = useRef(false);
+  const placemarkMapRef = useRef<Map<string, any>>(new Map());
+  const [selectedMapPharmacyId, setSelectedMapPharmacyId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !token) navigate("/login");
@@ -234,6 +236,7 @@ export default function MedicineSearch() {
     setIsStockSearching(true);
     setStockResults(null);
     setExpandedPharmacy(null);
+    setSelectedMapPharmacyId(null);
     mapInitialized.current = false;
     mapRef.current = null;
     try {
@@ -256,6 +259,17 @@ export default function MedicineSearch() {
       setIsStockSearching(false);
     }
   };
+
+  // ── Select pharmacy on map ─────────────────────────────────────────────────
+  const handleSelectOnMap = useCallback((pharmacy: StockPharmacy) => {
+    const lat = Number(pharmacy.latitude);
+    const lon = Number(pharmacy.longitude);
+    if (!lat || !lon || !mapRef.current) return;
+    setSelectedMapPharmacyId(pharmacy.id);
+    mapRef.current.setCenter([lat, lon], 16, { duration: 400 });
+    const placemark = placemarkMapRef.current.get(pharmacy.id);
+    if (placemark) placemark.balloon.open();
+  }, []);
 
   const handleBackToSearch = () => {
     setStage("search");
@@ -299,6 +313,7 @@ export default function MedicineSearch() {
   const renderMapMarkers = useCallback(() => {
     if (!mapRef.current || !window.ymaps || !stockResults) return;
     mapRef.current.geoObjects.removeAll();
+    placemarkMapRef.current.clear();
     const collection = new window.ymaps.GeoObjectCollection();
     stockResults.forEach((pharmacy) => {
       const lat = Number(pharmacy.latitude);
@@ -324,6 +339,7 @@ export default function MedicineSearch() {
         },
         { preset: "islands#violetDotIcon" }
       );
+      placemarkMapRef.current.set(pharmacy.id, placemark);
       collection.add(placemark);
     });
     mapRef.current.geoObjects.add(collection);
@@ -731,7 +747,12 @@ export default function MedicineSearch() {
                 onToggleExpand={setExpandedPharmacy}
               />
             ) : (
-              <MapResults pharmacies={stockResults} mapContainerRef={mapContainerRef} />
+              <MapResults
+                pharmacies={stockResults}
+                mapContainerRef={mapContainerRef}
+                selectedId={selectedMapPharmacyId}
+                onSelectPharmacy={handleSelectOnMap}
+              />
             )}
           </div>
         </div>
@@ -864,16 +885,29 @@ function ListResults({
 function MapResults({
   pharmacies,
   mapContainerRef,
+  selectedId,
+  onSelectPharmacy,
 }: {
   pharmacies: StockPharmacy[];
   mapContainerRef: React.RefObject<HTMLDivElement | null>;
+  selectedId: string | null;
+  onSelectPharmacy: (pharmacy: StockPharmacy) => void;
 }) {
   const withCoords = pharmacies.filter((p) => p.latitude && p.longitude);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+
+  // Scroll selected item into view in sidebar
+  useEffect(() => {
+    if (!selectedId) return;
+    const el = itemRefs.current.get(selectedId);
+    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [selectedId]);
 
   return (
     <div className="flex h-full w-full relative">
       {/* Sidebar */}
-      <div className="w-64 shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col overflow-hidden z-10">
+      <div ref={sidebarRef} className="w-64 shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col overflow-hidden z-10">
         <div className="p-3 border-b border-gray-100 dark:border-gray-700 shrink-0">
           <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">На карте</div>
           <div className="text-lg font-bold text-gray-800 dark:text-gray-200 mt-0.5">
@@ -887,19 +921,38 @@ function MapResults({
           )}
         </div>
         <div className="flex-1 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-700/50">
-          {pharmacies.map((p, idx) => (
-            <div key={p.id} className="flex items-center gap-2.5 px-3 py-2.5">
-              <span className="text-xs text-gray-400 font-mono shrink-0 w-5 text-center">{idx + 1}</span>
-              <PharmacyImage src={p.imageUrl} size={32} />
-              <div className="min-w-0 flex-1">
-                <div className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{p.name}</div>
-                <div className="text-xs text-purple-600 dark:text-purple-400 font-semibold">{formatPrice(p.totalAmount)}</div>
-                {!p.latitude && !p.longitude && (
-                  <div className="text-xs text-gray-400 italic">нет координат</div>
-                )}
-              </div>
-            </div>
-          ))}
+          {pharmacies.map((p, idx) => {
+            const isSelected = selectedId === p.id;
+            const hasCoords = !!(p.latitude && p.longitude);
+            return (
+              <button
+                key={p.id}
+                ref={(el) => { if (el) itemRefs.current.set(p.id, el); else itemRefs.current.delete(p.id); }}
+                onClick={() => hasCoords && onSelectPharmacy(p)}
+                disabled={!hasCoords}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors ${
+                  isSelected
+                    ? "bg-purple-50 dark:bg-purple-900/30 border-l-2 border-purple-500"
+                    : hasCoords
+                    ? "hover:bg-gray-50 dark:hover:bg-gray-700/40 border-l-2 border-transparent"
+                    : "opacity-50 cursor-default border-l-2 border-transparent"
+                }`}
+              >
+                <span className={`text-xs font-mono shrink-0 w-5 text-center ${isSelected ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-400"}`}>
+                  {idx + 1}
+                </span>
+                <PharmacyImage src={p.imageUrl} size={32} />
+                <div className="min-w-0 flex-1">
+                  <div className={`text-xs font-medium truncate ${isSelected ? "text-purple-700 dark:text-purple-300" : "text-gray-800 dark:text-gray-200"}`}>
+                    {p.name}
+                  </div>
+                  <div className="text-xs text-purple-600 dark:text-purple-400 font-semibold">{formatPrice(p.totalAmount)}</div>
+                  {!hasCoords && <div className="text-xs text-gray-400 italic">нет координат</div>}
+                </div>
+                {isSelected && <MapPin className="h-3.5 w-3.5 text-purple-500 shrink-0" />}
+              </button>
+            );
+          })}
         </div>
       </div>
 
