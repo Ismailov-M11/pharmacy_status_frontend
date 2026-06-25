@@ -138,6 +138,7 @@ export default function MedicineSearch() {
   const [isOrderSearching, setIsOrderSearching] = useState(false);
   const [isOrderDropdownOpen, setIsOrderDropdownOpen] = useState(false);
   const [selectedOrderCode, setSelectedOrderCode] = useState<string | null>(null);
+  const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
   const pendingAutoRegion = useRef<string | null>(null);
   const orderDropdownRef = useRef<HTMLDivElement>(null);
   const orderSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -528,34 +529,72 @@ export default function MedicineSearch() {
                     ) : orderResults.length === 0 ? (
                       <div className="px-4 py-3 text-sm text-gray-400 text-center">Заказы не найдены</div>
                     ) : (
-                      <div className="max-h-64 overflow-y-auto p-1">
-                        {orderResults.map((order) => (
-                          <button
-                            key={order.id}
-                            onClick={() => handleSelectOrder(order)}
-                            className="w-full flex items-start gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors text-left"
-                          >
-                            <div className="mt-0.5 shrink-0">
-                              <Receipt className="h-4 w-4 text-purple-500" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-semibold text-gray-800 dark:text-gray-200">{order.code}</span>
-                                <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                                  order.status === "COMPLETED" ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" :
-                                  order.status === "NEW" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400" :
-                                  "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
-                                }`}>{order.status}</span>
+                      <div className="max-h-96 overflow-y-auto p-1">
+                        {orderResults.map((order) => {
+                          const isExpanded = expandedOrderId === order.id;
+                          return (
+                            <div key={order.id} className="rounded-lg mb-0.5 overflow-hidden">
+                              {/* Order header row */}
+                              <div className="flex items-center gap-2 px-3 py-2.5 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors">
+                                {/* Expand toggle — left part */}
+                                <button
+                                  onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                                  className="flex items-start gap-2.5 flex-1 min-w-0 text-left"
+                                >
+                                  <div className="mt-0.5 shrink-0">
+                                    <ChevronDown className={`h-4 w-4 text-purple-500 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{order.code}</span>
+                                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                                        order.status === "COMPLETED" ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" :
+                                        order.status === "NEW" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400" :
+                                        order.status === "CANCELLED" ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400" :
+                                        "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                                      }`}>{order.status}</span>
+                                    </div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                      {order.marketName && <span>{order.marketName} · </span>}
+                                      {order.parentRegionRu && <span className="text-purple-500 dark:text-purple-400">{order.parentRegionRu}{order.regionRu ? ` / ${order.regionRu}` : ""} · </span>}
+                                      {order.customerPhone && <span>{order.customerPhone} · </span>}
+                                      <span>{order.items.length} поз.</span>
+                                    </div>
+                                  </div>
+                                </button>
+                                {/* Select button */}
+                                <button
+                                  onClick={() => handleSelectOrder(order)}
+                                  className="shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-colors"
+                                >
+                                  Выбрать
+                                </button>
                               </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                {order.marketName && <span>{order.marketName} · </span>}
-                                {order.parentRegionRu && <span className="text-purple-500 dark:text-purple-400">{order.parentRegionRu}{order.regionRu ? ` / ${order.regionRu}` : ""} · </span>}
-                                {order.customerPhone && <span>{order.customerPhone} · </span>}
-                                <span>{order.items.length} поз.</span>
-                              </div>
+
+                              {/* Expanded items list */}
+                              {isExpanded && (
+                                <div className="bg-purple-50/50 dark:bg-purple-900/10 border-t border-purple-100 dark:border-purple-800/30 px-4 py-2 flex flex-col gap-1.5">
+                                  {order.items.map((item, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                                      <Pill className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                                      <span className="flex-1 min-w-0 truncate font-medium">{item.name}</span>
+                                      <span className="shrink-0 text-gray-400">×{item.quantity}</span>
+                                      <span className="shrink-0 text-green-600 dark:text-green-400 font-medium">
+                                        {item.price.toLocaleString("ru-RU")} сум
+                                      </span>
+                                    </div>
+                                  ))}
+                                  <button
+                                    onClick={() => handleSelectOrder(order)}
+                                    className="mt-1 w-full py-1.5 text-xs font-semibold rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-colors text-center"
+                                  >
+                                    Выбрать этот заказ
+                                  </button>
+                                </div>
+                              )}
                             </div>
-                          </button>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
