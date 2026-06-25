@@ -82,6 +82,7 @@ export default function MedicineSearch() {
   const [isDrugDropdownOpen, setIsDrugDropdownOpen] = useState(false);
   const drugDropdownRef = useRef<HTMLDivElement>(null);
   const drugSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const drugSearchAbortRef = useRef<AbortController | null>(null);
 
   // ── Drug list ──────────────────────────────────────────────────────────────
   const [drugList, setDrugList] = useState<DrugListItem[]>([]);
@@ -144,12 +145,16 @@ export default function MedicineSearch() {
       return;
     }
     drugSearchTimeout.current = setTimeout(async () => {
+      // Cancel any in-flight request from a previous keystroke
+      if (drugSearchAbortRef.current) drugSearchAbortRef.current.abort();
+      drugSearchAbortRef.current = new AbortController();
       setIsDrugSearching(true);
       try {
-        const res = await searchDrugs(token, drugQuery);
+        const res = await searchDrugs(token, drugQuery, drugSearchAbortRef.current.signal);
         setDrugResults(res.items);
         setIsDrugDropdownOpen(res.items.length > 0);
       } catch (err: any) {
+        if (err.name === "AbortError") return;
         toast.error(err.message || "Ошибка поиска лекарств");
         setDrugResults([]);
       } finally {

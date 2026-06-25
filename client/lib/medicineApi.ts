@@ -78,7 +78,8 @@ export async function getMedicineFilterOptions(
 
 export async function searchDrugs(
   token: string,
-  searchText: string
+  searchText: string,
+  signal?: AbortSignal
 ): Promise<{ items: DrugItem[] }> {
   const response = await fetch(`${BACKEND_URL}/api/oson/medicine/drug-search`, {
     method: "POST",
@@ -87,11 +88,24 @@ export async function searchDrugs(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ searchText }),
+    signal,
   });
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error((err as any).error || "Drug search failed");
   }
+  return response.json();
+}
+
+export async function getPharmacyLocation(
+  token: string,
+  slug: string
+): Promise<{ slug: string; latitude: number; longitude: number } | null> {
+  const response = await fetch(
+    `${BACKEND_URL}/api/oson/medicine/pharmacy-location/${encodeURIComponent(slug)}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!response.ok) return null;
   return response.json();
 }
 
