@@ -287,7 +287,7 @@ export function Header() {
             <DropdownMenuContent
               align="start"
               sideOffset={8}
-              className="w-72 p-0 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl dark:bg-gray-900"
+              className="w-72 p-0 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl dark:bg-gray-900 flex flex-col max-h-[calc(100svh-4rem)]"
             >
               {/* Header section */}
               <div className="px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 dark:from-purple-800 dark:to-purple-900">
@@ -323,7 +323,7 @@ export function Header() {
               </div>
 
               {/* Items */}
-              <div className="px-2 pb-2 space-y-0.5">
+              <div className="px-2 pb-2 space-y-0.5 overflow-y-auto flex-1 min-h-0">
                 {navigationItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
