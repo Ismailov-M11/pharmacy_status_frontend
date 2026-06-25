@@ -1213,7 +1213,7 @@ function ListResults({
 }) {
   return (
     <div className="h-full overflow-y-auto p-4 sm:p-6">
-      <div className="max-w-3xl mx-auto space-y-3">
+      <div className="space-y-3">
         {pharmacies.map((pharmacy, idx) => {
           const isExpanded = expandedPharmacy === pharmacy.id;
           return (
@@ -1223,58 +1223,60 @@ function ListResults({
             >
               <button
                 onClick={() => onToggleExpand(isExpanded ? null : pharmacy.id)}
-                className="w-full flex items-start gap-4 p-4 text-left hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors"
+                className="w-full flex items-center gap-5 p-5 text-left hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors"
               >
                 {/* Rank + image */}
                 <div className="relative shrink-0">
-                  <PharmacyImage src={pharmacy.imageUrl} size={56} />
-                  <span className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-purple-600 text-white text-xs font-bold flex items-center justify-center shadow">
+                  <PharmacyImage src={pharmacy.imageUrl} size={72} />
+                  <span className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold flex items-center justify-center shadow">
                     {idx + 1}
                   </span>
                 </div>
 
+                {/* Main info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm leading-tight">
-                        {pharmacy.name}
-                      </div>
-                      {pharmacy.address && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <MapPin className="h-3 w-3 text-gray-400 shrink-0" />
-                          <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{pharmacy.address}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                        {pharmacy.phone && (
-                          <a
-                            href={`tel:${pharmacy.phone}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 hover:underline"
-                          >
-                            <Phone className="h-3 w-3" />
-                            {pharmacy.phone}
-                          </a>
-                        )}
-                        {pharmacy.openTime && pharmacy.closeTime && (
-                          <span className="flex items-center gap-1 text-xs text-gray-400">
-                            <Clock className="h-3 w-3" />
-                            {pharmacy.openTime.slice(0, 5)} – {pharmacy.closeTime.slice(0, 5)}
-                          </span>
-                        )}
-                      </div>
+                  <div className="font-semibold text-gray-900 dark:text-gray-100 text-base leading-tight">
+                    {pharmacy.name}
+                  </div>
+                  {pharmacy.address && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                      <span className="text-sm text-gray-500 dark:text-gray-400 truncate">{pharmacy.address}</span>
                     </div>
-
-                    <div className="shrink-0 text-right">
-                      <div className="text-base font-bold text-purple-700 dark:text-purple-400">
-                        {formatPrice(pharmacy.totalAmount)}
-                      </div>
-                      <div className="text-xs text-gray-400 mt-0.5">{pharmacy.products.length} поз.</div>
-                    </div>
+                  )}
+                  {/* Badges row */}
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    {pharmacy.phone && (
+                      <a
+                        href={`tel:${pharmacy.phone}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm font-medium hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors"
+                      >
+                        <Phone className="h-3.5 w-3.5" />
+                        {pharmacy.phone}
+                      </a>
+                    )}
+                    {pharmacy.openTime && pharmacy.closeTime && (
+                      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm">
+                        <Clock className="h-3.5 w-3.5" />
+                        {pharmacy.openTime.slice(0, 5)} – {pharmacy.closeTime.slice(0, 5)}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-sm font-medium">
+                      {pharmacy.products.length} поз.
+                    </span>
                   </div>
                 </div>
 
-                <Expand className={`h-4 w-4 text-gray-400 shrink-0 mt-1 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                {/* Price + expand */}
+                <div className="shrink-0 flex items-center gap-3">
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-purple-700 dark:text-purple-400 whitespace-nowrap">
+                      {formatPrice(pharmacy.totalAmount)}
+                    </div>
+                  </div>
+                  <Expand className={`h-5 w-5 text-gray-400 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                </div>
               </button>
 
               {isExpanded && (
