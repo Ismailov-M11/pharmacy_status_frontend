@@ -117,12 +117,11 @@ function getStatusIcon(status: OsonStatus) {
 
 function getMarkerColor(status: OsonStatus): string {
   switch (status) {
-    case "connected":
-      return "islands#greenDotIcon";
-    case "not_connected":
-      return "islands#orangeDotIcon";
-    default:
-      return "islands#grayDotIcon";
+    case "connected":    return "islands#greenDotIcon";
+    case "not_connected": return "islands#orangeDotIcon";
+    case "deleted":      return "islands#redDotIcon";
+    case "new":          return "islands#blueDotIcon";
+    default:             return "islands#grayDotIcon";
   }
 }
 
@@ -448,9 +447,7 @@ export default function OsonList() {
     if (!mapRef.current || !window.ymaps) return;
     const geoObjects = mapRef.current.geoObjects;
     geoObjects.removeAll();
-    const visiblePharmacies = filteredPharmacies.filter(
-      (p) => p.oson_status === "connected" || p.oson_status === "not_connected" || p.oson_status === "deleted"
-    );
+    const visiblePharmacies = filteredPharmacies;
     const collection = new window.ymaps.GeoObjectCollection();
     visiblePharmacies.forEach((pharmacy) => {
       const lat = parseFloat(pharmacy.latitude as unknown as string);
@@ -1156,7 +1153,11 @@ function MapTab({ containerRef, isLoading, pharmacies, language, filterParentReg
   filterOptions: OsonFilterOptions; onFilterParentRegion: (v: string[]) => void; onFilterRegion: (v: string[]) => void;
   onFilterStatus: (status: OsonStatus | "all") => void; onSearch: (v: string) => void; stats: OsonStats;
 }) {
-  const mapCount = pharmacies.filter(p => p.oson_status === "connected" || p.oson_status === "not_connected").length;
+  const mapCount = pharmacies.filter(p => {
+    const lat = parseFloat(p.latitude as unknown as string);
+    const lon = parseFloat(p.longitude as unknown as string);
+    return lat && lon && !isNaN(lat) && !isNaN(lon);
+  }).length;
 
   return (
     <div className="flex h-full w-full">
@@ -1174,10 +1175,11 @@ function MapTab({ containerRef, isLoading, pharmacies, language, filterParentReg
         </div>
         <div className="rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 p-2 flex flex-col gap-1 mt-2">
           {([
-            { value: "all", label: `Все (${stats.total})`, dot: "bg-gray-400" },
-            { value: "connected", label: `Подключён (${stats.connected})`, dot: "bg-emerald-500" },
+            { value: "all",           label: `Все (${stats.total})`,                dot: "bg-gray-400" },
+            { value: "connected",     label: `Подключён (${stats.connected})`,      dot: "bg-emerald-500" },
             { value: "not_connected", label: `Не подключён (${stats.not_connected})`, dot: "bg-amber-500" },
-            { value: "deleted", label: `Удалён (${stats.deleted})`, dot: "bg-red-500" },
+            { value: "deleted",       label: `Удалён (${stats.deleted})`,           dot: "bg-red-500" },
+            { value: "new",           label: `Новый (${stats.new || 0})`,           dot: "bg-blue-500" },
           ] as { value: OsonStatus | "all"; label: string; dot: string }[]).map(({ value, label, dot }) => (
             <button key={value} onClick={() => onFilterStatus(value)} className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs text-left transition-colors ${
               (value === "all" ? filterStatus.length === 0 : filterStatus.includes(value))

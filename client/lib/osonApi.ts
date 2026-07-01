@@ -139,7 +139,7 @@ export async function getOsonPharmacies(
  */
 export async function getOsonStats(
   token: string,
-  filters: Pick<OsonFilters, "parentRegion" | "region" | "search"> = {}
+  filters: Pick<OsonFilters, "parentRegion" | "region" | "search" | "inn"> = {}
 ): Promise<OsonStats> {
   const params = new URLSearchParams();
   if (filters.parentRegion && (!Array.isArray(filters.parentRegion) || filters.parentRegion.length > 0)) {
@@ -149,6 +149,7 @@ export async function getOsonStats(
     params.set("region", Array.isArray(filters.region) ? filters.region.join(",") : filters.region);
   }
   if (filters.search) params.set("search", filters.search);
+  if (filters.inn) params.set("inn", filters.inn);
 
   const url = `${BACKEND_URL}/api/oson/stats${params.toString() ? `?${params}` : ""}`;
   const response = await fetch(url, {
