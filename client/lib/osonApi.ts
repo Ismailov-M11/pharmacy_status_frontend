@@ -24,6 +24,7 @@ export interface OsonPharmacy {
   is_verified: boolean;
   discount_percent: number;
   cashback_percent: number;
+  inn: string | null;
   oson_status: OsonStatus;
   last_synced_at: string;
   oson_synced_time: string | null;
@@ -71,6 +72,7 @@ export interface OsonFilters {
   parentRegion?: string[] | string;
   region?: string[] | string;
   search?: string;
+  inn?: string;
   page?: number;
   size?: number;
 }
@@ -114,6 +116,7 @@ export async function getOsonPharmacies(
     params.set("region", Array.isArray(filters.region) ? filters.region.join(",") : filters.region);
   }
   if (filters.search) params.set("search", filters.search);
+  if (filters.inn) params.set("inn", filters.inn);
   if (filters.page !== undefined) params.set("page", String(filters.page));
   if (filters.size !== undefined) params.set("size", String(filters.size));
 

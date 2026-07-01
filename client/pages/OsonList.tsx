@@ -216,6 +216,7 @@ export default function OsonList() {
   const [filterParentRegion, setFilterParentRegion] = useState<string[]>([]);
   const [filterRegion, setFilterRegion] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [filterInn, setFilterInn] = useState<string>("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Pagination
@@ -255,6 +256,7 @@ export default function OsonList() {
         parentRegion: filterParentRegion.length > 0 ? filterParentRegion : undefined,
         region: filterRegion.length > 0 ? filterRegion : undefined,
         search: searchQuery || undefined,
+        inn: filterInn || undefined,
       };
 
       const [dataRes, statsData, syncData] = await Promise.all([
@@ -284,7 +286,7 @@ export default function OsonList() {
     } finally {
       setIsLoading(false);
     }
-  }, [token, activeTab, filterParentRegion, filterRegion, searchQuery, filterStatus, pageSize]);
+  }, [token, activeTab, filterParentRegion, filterRegion, searchQuery, filterInn, filterStatus, pageSize]);
 
   // Load filter options separately (updates when parent region changes)
   const loadFilterOptions = useCallback(async () => {
@@ -605,48 +607,14 @@ export default function OsonList() {
           </div>
 
           {activeTab === "list" && (
-            <div className="flex gap-2 flex-wrap">
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Поиск по названию, slug, адресу..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 dark:text-gray-100"
-                />
-              </div>
-              <div className="w-48 shrink-0">
-                <MultiSelectDropdown
-                  label="Статус"
-                  options={[
-                    { value: "connected", label: "Подключён" },
-                    { value: "not_connected", label: "Не подключён" },
-                    { value: "new", label: "Новый" },
-                    { value: "deleted", label: "Удалён" },
-                  ]}
-                  selectedValues={filterStatus.filter(s => s !== "all") as string[]}
-                  onChange={(v) => setFilterStatus(v as (OsonStatus | "all")[])}
-                  alignRight={false}
-                />
-              </div>
-              <div className="w-56 shrink-0">
-                <MultiSelectDropdown
-                  label="Выберите города"
-                  options={filterOptions.parentRegions.map(r => ({ value: r.parent_region_ru, label: language === "uz" ? r.parent_region_uz || r.parent_region_ru : r.parent_region_ru }))}
-                  selectedValues={filterParentRegion}
-                  onChange={(v) => { setFilterParentRegion(v); setFilterRegion([]); }}
-                  alignRight={true}
-                />
-              </div>
-              <div className="w-56 shrink-0">
-                <MultiSelectDropdown
-                  label="Выберите районы"
-                  options={filterOptions.regions.map(r => ({ value: r.region_ru, label: language === "uz" ? r.region_uz || r.region_ru : r.region_ru }))}
-                  selectedValues={filterRegion}
-                  onChange={setFilterRegion}
-                  alignRight={true}
-                />
-              </div>
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Поиск по названию, slug, адресу..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 dark:text-gray-100"
+              />
             </div>
           )}
         </div>
@@ -660,6 +628,15 @@ export default function OsonList() {
               pageSize={pageSize}
               onPageSizeChange={setPageSize}
               totalCount={totalCount}
+              filterStatus={filterStatus}
+              onSetStatus={(v) => setFilterStatus(v)}
+              filterParentRegion={filterParentRegion}
+              onFilterParentRegion={(v) => { setFilterParentRegion(v); setFilterRegion([]); }}
+              filterRegion={filterRegion}
+              onFilterRegion={setFilterRegion}
+              filterInn={filterInn}
+              onFilterInn={setFilterInn}
+              filterOptions={filterOptions}
             />
           ) : (
             <MapTab
@@ -762,15 +739,166 @@ function SyncProgressBar({ progress }: { progress: OsonProgress }) {
   );
 }
 
+// ─── Column Filter Popover ───────────────────────────────────────────────────────────────────
+
+function ColFilter({
+  children,
+  type,
+  options,
+  selectedValues,
+  onChange,
+  textValue,
+  onTextChange,
+}: {
+  children: React.ReactNode;
+  type: "multiselect" | "text";
+  options?: { value: string; label: string }[];
+  selectedValues?: string[];
+  onChange?: (values: string[]) => void;
+  textValue?: string;
+  onTextChange?: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [local, setLocal] = useState<string[]>([]);
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const isActive = type === "multiselect"
+    ? (selectedValues?.length ?? 0) > 0
+    : (textValue?.length ?? 0) > 0;
+
+  useEffect(() => {
+    if (open) {
+      setLocal(selectedValues ?? []);
+      setSearch("");
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  const filtered = (options ?? []).filter(o =>
+    o.label.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const toggle = (v: string) =>
+    setLocal(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]);
+
+  const apply = () => { onChange?.(local); setOpen(false); };
+  const clear = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (type === "multiselect") onChange?.([]);
+    else onTextChange?.("");
+  };
+
+  return (
+    <div className="relative inline-flex items-center gap-1 select-none" ref={ref}>
+      <span>{children}</span>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className={`p-0.5 rounded transition-colors ${isActive
+          ? "text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/40"
+          : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+        }`}
+        title="Фильтр"
+      >
+        <Filter className="h-3 w-3" />
+      </button>
+      {isActive && (
+        <button onClick={clear} className="p-0.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors" title="Сбросить">
+          <FilterX className="h-3 w-3" />
+        </button>
+      )}
+      {open && (
+        <div className="absolute top-full left-0 z-50 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl min-w-[200px]" style={{ minWidth: type === "text" ? 180 : 220 }}>
+          {type === "text" ? (
+            <div className="p-2 flex gap-1">
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder="Поиск..."
+                value={textValue ?? ""}
+                onChange={e => onTextChange?.(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && setOpen(false)}
+                className="flex-1 px-2 py-1.5 text-sm rounded border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-purple-500"
+              />
+              <button onClick={() => setOpen(false)} className="px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700">OK</button>
+            </div>
+          ) : (
+            <>
+              <div className="p-2 border-b border-gray-100 dark:border-gray-700">
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    placeholder="Поиск..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="w-full pl-7 pr-2 py-1.5 text-sm rounded bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+              <div className="max-h-52 overflow-y-auto p-1">
+                {filtered.length === 0
+                  ? <div className="px-3 py-2 text-xs text-gray-400 text-center">Нет вариантов</div>
+                  : filtered.map(opt => {
+                      const checked = local.includes(opt.value);
+                      return (
+                        <div
+                          key={opt.value}
+                          onClick={() => toggle(opt.value)}
+                          className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                        >
+                          <div className={`w-3.5 h-3.5 rounded border shrink-0 flex items-center justify-center transition-colors ${checked ? "bg-purple-600 border-purple-600" : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"}`}>
+                            {checked && <CheckCircle className="h-2.5 w-2.5 text-white" />}
+                          </div>
+                          <span className={`text-xs ${checked ? "font-medium text-gray-900 dark:text-white" : "text-gray-700 dark:text-gray-300"}`}>{opt.label}</span>
+                        </div>
+                      );
+                    })
+                }
+              </div>
+              <div className="p-2 border-t border-gray-100 dark:border-gray-700 flex gap-1">
+                <button onClick={() => { setLocal([]); }} className="flex-1 text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Сбросить</button>
+                <button onClick={apply} className="flex-1 text-xs px-2 py-1.5 rounded bg-purple-600 text-white hover:bg-purple-700">Применить</button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── List Tab ────────────────────────────────────────────────────────────────────────────────
 
-function ListTab({ pharmacies, isLoading, language, pageSize, onPageSizeChange, totalCount }: {
+function ListTab({ pharmacies, isLoading, language, pageSize, onPageSizeChange, totalCount,
+  filterStatus, onSetStatus, filterParentRegion, onFilterParentRegion,
+  filterRegion, onFilterRegion, filterInn, onFilterInn, filterOptions,
+}: {
   pharmacies: OsonPharmacy[];
   isLoading: boolean;
   language: string;
   pageSize: number;
   onPageSizeChange: (size: number) => void;
   totalCount: number;
+  filterStatus: (OsonStatus | "all")[];
+  onSetStatus: (v: (OsonStatus | "all")[]) => void;
+  filterParentRegion: string[];
+  onFilterParentRegion: (v: string[]) => void;
+  filterRegion: string[];
+  onFilterRegion: (v: string[]) => void;
+  filterInn: string;
+  onFilterInn: (v: string) => void;
+  filterOptions: OsonFilterOptions;
 }) {
   const [selectedPharmacy, setSelectedPharmacy] = useState<OsonPharmacy | null>(null);
   const [page, setPage] = useState(0);
@@ -808,19 +936,48 @@ function ListTab({ pharmacies, isLoading, language, pageSize, onPageSizeChange, 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-800 overflow-hidden relative">
       <div className="flex-1 overflow-auto">
-        <table className="text-sm border-collapse" style={{ minWidth: "2050px", width: "100%" }}>
+        <table className="text-sm border-collapse" style={{ minWidth: "2200px", width: "100%" }}>
           <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
             <tr>
               <th className={`${TH} w-12 text-center whitespace-nowrap`}>#</th>
               <th className={TH} style={{ minWidth: "180px" }}>Название</th>
               <th className={TH} style={{ width: "180px", maxWidth: "180px" }}>Slug</th>
-              <th className={TH}>Статус</th>
-              <th className={TH}>Город</th>
-              <th className={TH}>Район</th>
+              <th className={TH}>
+                <ColFilter
+                  type="multiselect"
+                  options={[
+                    { value: "connected", label: "Подключён" },
+                    { value: "not_connected", label: "Не подключён" },
+                    { value: "new", label: "Новый" },
+                    { value: "deleted", label: "Удалён" },
+                  ]}
+                  selectedValues={filterStatus.filter(s => s !== "all") as string[]}
+                  onChange={(v) => onSetStatus(v as (OsonStatus | "all")[])}
+                >Статус</ColFilter>
+              </th>
+              <th className={TH}>
+                <ColFilter
+                  type="multiselect"
+                  options={filterOptions.parentRegions.map(r => ({ value: r.parent_region_ru, label: r.parent_region_ru }))}
+                  selectedValues={filterParentRegion}
+                  onChange={(v) => onFilterParentRegion(v)}
+                >Город</ColFilter>
+              </th>
+              <th className={TH}>
+                <ColFilter
+                  type="multiselect"
+                  options={filterOptions.regions.map(r => ({ value: r.region_ru, label: r.region_ru }))}
+                  selectedValues={filterRegion}
+                  onChange={onFilterRegion}
+                >Район</ColFilter>
+              </th>
               <th className={TH} style={{ minWidth: "180px" }}>Адрес</th>
               <th className={TH} style={{ minWidth: "150px" }}>Ориентир</th>
               <th className={TH}>Телефон</th>
               <th className={TH}>Время работы</th>
+              <th className={TH}>
+                <ColFilter type="text" textValue={filterInn} onTextChange={onFilterInn}>ИНН</ColFilter>
+              </th>
               <th className={TH} style={{ minWidth: "130px" }}>Обновлено</th>
               <th className={TH} style={{ minWidth: "150px" }}>Время синхронизации OSON</th>
             </tr>
@@ -867,6 +1024,9 @@ function ListTab({ pharmacies, isLoading, language, pageSize, onPageSizeChange, 
                     {pharmacy.open_time && pharmacy.close_time ? (
                       <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{pharmacy.open_time.slice(0, 5)} – {pharmacy.close_time.slice(0, 5)}</span>
                     ) : "—"}
+                  </td>
+                  <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 align-middle whitespace-nowrap font-mono">
+                    {pharmacy.inn || <span className="text-gray-300 dark:text-gray-600">—</span>}
                   </td>
                   <td className="px-3 py-2.5 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{formatDateTime(pharmacy.last_synced_at)}</td>
                   <td className="px-3 py-2.5 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{formatOsonDateTime(pharmacy.oson_synced_time)}</td>
@@ -1072,6 +1232,7 @@ function PharmacyDetailModal({ pharmacy, language, onClose }: { pharmacy: OsonPh
     { label: "Адрес (UZ)", value: pharmacy.address_uz || "—" },
     { label: "Ориентир (RU)", value: pharmacy.landmark_ru || "—" },
     { label: "Ориентир (UZ)", value: pharmacy.landmark_uz || "—" },
+    { label: "ИНН", value: pharmacy.inn ? <span className="font-mono">{pharmacy.inn}</span> : "—" },
     { label: "Телефон", value: pharmacy.phone ? <a href={`tel:${pharmacy.phone}`} className="text-purple-600 dark:text-purple-400 hover:underline">{pharmacy.phone}</a> : "—" },
     { label: "Время работы", value: pharmacy.open_time && pharmacy.close_time ? `${pharmacy.open_time.slice(0, 5)} – ${pharmacy.close_time.slice(0, 5)}` : "—" },
     { label: "Доставка", value: pharmacy.has_delivery ? <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Truck className="h-3.5 w-3.5" /> Есть</span> : <span className="text-gray-400">Нет</span> },
