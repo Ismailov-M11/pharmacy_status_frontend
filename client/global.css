@@ -188,6 +188,48 @@
   }
 }
 
+/* ─── Custom Scrollbar ──────────────────────────────────────────────────────── */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+
+[data-theme="dark"] * {
+  scrollbar-color: #4b5563 #1f2937;
+}
+
+[data-theme="dark"] *::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+[data-theme="dark"] *::-webkit-scrollbar-thumb {
+  background-color: #4b5563;
+}
+
+[data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
+  background-color: #6b7280;
+}
+
 /* Yandex Maps Dark Mode */
 .yandex-map-dark [class*="ymaps-2"][class*="-ground-pane"] {
   filter: invert(100%) hue-rotate(180deg) brightness(1.7) contrast(1.1) saturate(3.0);
