@@ -527,8 +527,9 @@ export default function OsonList() {
       <Header />
       <main className="flex-1 flex flex-col overflow-hidden">
         <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-3 flex flex-col gap-3 shrink-0 relative z-20">
+          {/* Row 1: Title + Stats + Action buttons */}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <div>
                 <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">OSON Slug List</h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -546,8 +547,15 @@ export default function OsonList() {
                   )}
                 </p>
               </div>
+              <div className="flex gap-2 flex-wrap">
+                <StatsCard label="Всего" value={stats.total} color="gray" onClick={() => toggleStatusFilter("all")} active={isStatusActive("all")} />
+                <StatsCard label="Подключён" value={stats.connected} color="green" onClick={() => toggleStatusFilter("connected")} active={isStatusActive("connected")} />
+                <StatsCard label="Не подключён" value={stats.not_connected} color="amber" onClick={() => toggleStatusFilter("not_connected")} active={isStatusActive("not_connected")} />
+                <StatsCard label="Удалён" value={stats.deleted} color="red" onClick={() => toggleStatusFilter("deleted")} active={isStatusActive("deleted")} />
+                <StatsCard label="Новый" value={stats.new || 0} color="blue" onClick={() => toggleStatusFilter("new")} active={isStatusActive("new")} />
+              </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 shrink-0">
               <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <button
                   onClick={() => setActiveTab("list")}
@@ -598,22 +606,15 @@ export default function OsonList() {
 
           {(isSyncing || syncStatus.isSyncing) && <SyncProgressBar progress={syncProgress} />}
 
-          <div className="flex gap-2 flex-wrap">
-            <StatsCard label="Всего" value={stats.total} color="gray" onClick={() => toggleStatusFilter("all")} active={isStatusActive("all")} />
-            <StatsCard label="Подключён" value={stats.connected} color="green" onClick={() => toggleStatusFilter("connected")} active={isStatusActive("connected")} />
-            <StatsCard label="Не подключён" value={stats.not_connected} color="amber" onClick={() => toggleStatusFilter("not_connected")} active={isStatusActive("not_connected")} />
-            <StatsCard label="Удалён" value={stats.deleted} color="red" onClick={() => toggleStatusFilter("deleted")} active={isStatusActive("deleted")} />
-            <StatsCard label="Новый" value={stats.new || 0} color="blue" onClick={() => toggleStatusFilter("new")} active={isStatusActive("new")} />
-          </div>
-
+          {/* Row 2: Full-width search (list tab only) */}
           {activeTab === "list" && (
-            <div className="relative flex-1 min-w-[200px] max-w-sm">
+            <div className="relative w-full">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Поиск по названию, slug, адресу..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 dark:text-gray-100"
+                className="pl-8 w-full bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 dark:text-gray-100"
               />
             </div>
           )}
